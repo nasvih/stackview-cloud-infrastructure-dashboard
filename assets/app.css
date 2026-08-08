@@ -363,3 +363,13 @@ table.data td.right,table.data th.right{text-align:right}
   --shadow-2:0 6px 20px rgba(0,0,0,.55);
   --shadow-3:0 16px 44px rgba(0,0,0,.6);
 }
+
+/* The yellow sidebar keeps the light palette in dark mode: #EAC81C is a light
+   surface, so the dark theme's near-white ink would land on it at 1.9:1.
+   Re-pinning the tokens for that subtree keeps ink on yellow at 10.8:1. */
+[data-theme="dark"] .side[data-tone="amber"]{
+  --ink:#17181A; --ink-2:#2E3033; --muted:#3A3F45; --faint:#4A4F55;
+  --bg:#FFFFFF; --surface:#FFFFFF; --surface-2:#FFFFFF;
+  --line:rgba(23,24,26,.16); --line-2:rgba(23,24,26,.24); --hover:rgba(23,24,26,.07);
+  --amber-deep:#6B5400; --amber-darker:#5A4700;
+}
