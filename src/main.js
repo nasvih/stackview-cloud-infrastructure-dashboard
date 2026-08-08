@@ -316,7 +316,7 @@ window.addEventListener('resize', () => {
    persisted. index.html sets the attribute before first paint so a dark
    browser never flashes white. */
 const systemDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
-const isDark = () => (prefs.theme ? prefs.theme === 'dark' : !!(systemDark && systemDark.matches));
+const isDark = () => prefs.theme === 'dark';
 
 function applyTheme() {
   const dark = isDark();

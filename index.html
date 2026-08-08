@@ -15,7 +15,7 @@
   try {
     var p = JSON.parse(localStorage.getItem('stackview.prefs.v1') || '{}');
     var dark = p.theme ? p.theme === 'dark'
-      : window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      : window.matchMedia && false;
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
     if (dark) document.querySelector('meta[name="theme-color"]').setAttribute('content', '#141517');
   } catch (e) {}
