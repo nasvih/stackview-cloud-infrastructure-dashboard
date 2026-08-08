@@ -3,6 +3,7 @@
    ============================================================ */
 
 import { h, qs, icon, ICONS, router, toast, confirmDialog, modal } from '../lib/ui.js';
+import { initPWA } from '../lib/pwa.js';
 import { store, ORG, openAlerts } from './data.js';
 import { buildAssistant } from './agent.js';
 
@@ -28,12 +29,15 @@ const ROUTES = {
 const app = qs('#app');
 
 /* Sidebar preferences — rail collapse and brand colour. Kept out of the demo
-   store so that "Reset demo data" does not throw away a display choice. */
+   store so that "Reset demo data" does not throw away a display choice.
+   The brand yellow is the default navigation; plain white is the alternative,
+   so a first visit with nothing stored renders data-tone="amber". */
 const PREFS_KEY = 'stackview.prefs.v1';
 const RAIL_MIN = 900;   /* below this the sidebar is a drawer, so no rail */
+const DEFAULTS = { rail: false, tone: 'amber' };
 const prefs = (() => {
-  try { return Object.assign({ rail: false, tone: 'default' }, JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')); }
-  catch (_) { return { rail: false, tone: 'default' }; }
+  try { return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')); }
+  catch (_) { return Object.assign({}, DEFAULTS); }
 })();
 const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (_) {} };
 
@@ -42,6 +46,7 @@ const GLYPH = {
   collapse: '<svg viewBox="0 0 20 20"><path d="M11.6 5.6L7.2 10l4.4 4.4"/><path d="M15.4 3.6v12.8"/></svg>',
   expand: '<svg viewBox="0 0 20 20"><path d="M8.4 5.6L12.8 10l-4.4 4.4"/><path d="M4.6 3.6v12.8"/></svg>',
   tone: '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.6"/><path d="M10 3.4a6.6 6.6 0 0 1 0 13.2z" fill="currentColor" stroke="none"/></svg>',
+  external: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11.2 4.2h4.6v4.6"/><path d="M15.8 4.2l-6.4 6.4"/><path d="M14.4 11.6v3.6a1.6 1.6 0 0 1-1.6 1.6H4.8a1.6 1.6 0 0 1-1.6-1.6V7.2a1.6 1.6 0 0 1 1.6-1.6h3.6"/></svg>',
 };
 
 const railBtn = h('button', {
@@ -55,20 +60,52 @@ const toneBtn = h('button', {
   onclick: () => { prefs.tone = prefs.tone === 'amber' ? 'default' : 'amber'; savePrefs(); applyChrome(); },
 });
 
-/* ---------- about this demo ---------- */
+/* ---------- about this demo ----------
+   Four blocks: what the product is, where it helps, what a real deployment
+   would look like, and how this particular demo behaves. */
 const ABOUT = [
-  ['You can actually use it', 'Acknowledge and mute alerts, stop resources and reassign owners, work the idle and waste list, run the access review and the offboarding checklist, generate a monthly review. Nothing on these screens is read only.'],
-  ['Your data stays on your machine', 'Everything you change is saved in this browser\'s local storage. Nothing is sent to a server. There is no account, no backend, and no cloud provider is connected. Clear your browser data or use "Reset demo data" and it is all gone. It does not sync between browsers or devices.'],
-  ['The assistant is simulated', 'Stackview Insight answers by matching your question against this app\'s own demo data. It is a demonstration of the interaction, not a connected model, and no request leaves your browser.'],
+  {
+    title: 'What this is',
+    text: 'Stackview is one picture of what a business runs and what it pays for. It puts every resource — across cloud providers and the on-prem racks — in a single inventory, then reads cost by service, by environment and by team on top of it. Access and MFA status, open alerts and 30-day uptime sit on the same estate, so the answer to "what do we run, what does it cost, who can get into it" is one screen rather than three consoles.',
+  },
+  {
+    title: 'Where it helps a business',
+    list: [
+      ['One inventory', 'nobody opens three provider consoles to answer "what do we run". Cloud and on-prem are in the same table, with the same filters.'],
+      ['Waste is found before the bill', 'idle and forgotten resources are listed with a reason and a monthly figure, instead of being noticed at billing time.'],
+      ['Every resource has an owner', 'ownership is attached to the resource, so there is a named person to ask before anything is switched off.'],
+      ['Access review is already written', 'stale accounts, admin without MFA and old keys are listed continuously, so the review stops being an annual scramble.'],
+      ['Alerts leave a trail', 'acknowledgements and mutes are recorded against the alert, so an incident can be reconstructed after the fact.'],
+    ],
+  },
+  {
+    title: 'How it would work for real',
+    text: 'The same interface, reading from the provider APIs and the identity directory instead of sample data, with the inventory, the cost lines and the access findings refreshed on a schedule. What you are looking at here is the interface and the workflow — no account is connected and nothing is being polled.',
+  },
+  {
+    title: 'How this demo works',
+    list: [
+      ['You can actually use it', 'acknowledge and mute alerts, stop resources and reassign owners, work the idle and waste list, run the access review and the offboarding checklist, generate a monthly review. Nothing on these screens is read only.'],
+      ['Your data stays on your machine', 'everything you change is saved in this browser\'s local storage. There is no account and no backend. "Reset demo data" clears it, and it does not sync between browsers or devices.'],
+      ['The assistant is simulated', 'Stackview Insight answers by matching your question against this app\'s own demo data. It is a demonstration of the interaction, not a connected model, and no request leaves your browser.'],
+    ],
+  },
 ];
 
 export function aboutModal() {
+  /* under 900px the sidebar is a drawer that sits above the modal scrim, so a
+     modal opened from the footer has to close it first */
+  setSidebar(false);
   const body = h('div', { class: 'sv-about' },
-    h('p', { class: 'muted small' }, 'stackview is a demo of an infrastructure visibility product. The estate it shows — Northline Group, its resources, people and bills — is invented sample data.'),
-    ...ABOUT.map(([title, text]) => h('div', { class: 'sv-about__b' },
-      h('h4', {}, title),
-      h('p', { class: 'small muted' }, text))));
-  modal({ title: 'About this demo', body, actions: [{ label: 'Got it', class: 'btn--primary' }] });
+    h('p', { class: 'muted small' }, 'The estate on these screens — Northline Group, its resources, people and bills — is invented sample data.'),
+    ...ABOUT.map((b) => h('div', { class: 'sv-about__b' },
+      h('h4', {}, b.title),
+      b.text ? h('p', { class: 'small muted' }, b.text) : null,
+      b.list
+        ? h('ul', { class: 'sv-about__list' },
+            ...b.list.map(([lead, rest]) => h('li', {}, h('strong', {}, lead), ` — ${rest}`)))
+        : null)));
+  modal({ title: 'About Stackview', body, actions: [{ label: 'Got it', class: 'btn--primary' }] });
 }
 
 const side = h('aside', { class: 'side', id: 'sidebar' },
@@ -84,16 +121,13 @@ const side = h('aside', { class: 'side', id: 'sidebar' },
       h('div', { class: 'sv-org__name' }, ORG.name),
       h('div', { class: 'small faint' }, ORG.units.join(' · '))),
     h('div', { class: 'side__toggles' }, railBtn, toneBtn),
-    h('button', {
-      class: 'btn btn--ghost btn--block sv-reset',
-      type: 'button',
-      onclick: () => aboutModal(),
-      html: `${icon('eye')}<span>About this demo</span>`,
-    }),
+    /* the install control is mounted here by initPWA, next to the two toggles */
+    h('div', { class: 'sv-install' }),
     h('button', {
       class: 'btn btn--ghost btn--block sv-reset',
       type: 'button',
       onclick: async () => {
+        setSidebar(false);
         const ok = await confirmDialog(
           'This clears every change you made in this demo — acknowledged alerts, cleanup plans, offboarding progress and generated reports — and rebuilds the sample estate.',
           { title: 'Reset demo data', okLabel: 'Reset', danger: true });
@@ -103,6 +137,21 @@ const side = h('aside', { class: 'side', id: 'sidebar' },
         render();
       },
       html: `${icon('refresh')}<span>Reset demo data</span>`,
+    }),
+    h('button', {
+      class: 'btn btn--ghost btn--block sv-reset',
+      type: 'button',
+      onclick: () => aboutModal(),
+      html: `${icon('eye')}<span>About this demo</span>`,
+    }),
+    h('a', {
+      class: 'btn btn--block sv-site',
+      href: 'https://www.nasvih.in',
+      target: '_blank',
+      rel: 'noopener noreferrer',
+      'aria-label': 'nasvih.in — opens in a new tab',
+      title: 'nasvih.in — opens in a new tab',
+      html: `${GLYPH.external}<span>nasvih.in</span>`,
     })));
 
 const scrim = h('div', { class: 'sv-navscrim', hidden: true, onclick: () => setSidebar(false) });
@@ -274,6 +323,13 @@ document.addEventListener('keydown', (e) => {
 
 /* ---------- assistant ---------- */
 window.stackviewAssistant = buildAssistant(store).mount(document.body);
+
+/* ---------- installable ---------- */
+initPWA({
+  mount: qs('.sv-install'),
+  appName: 'Stackview',
+  onNote: (msg) => toast(msg),
+});
 
 /* ---------- go ---------- */
 nav.go();

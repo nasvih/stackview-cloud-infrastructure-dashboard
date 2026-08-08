@@ -10,11 +10,36 @@
 .sv-reset{justify-content:flex-start;color:var(--muted);font-weight:500}
 .sv-reset:hover{color:var(--ink)}
 .shell.is-rail .sv-reset{justify-content:center}
-/* the amber sidebar keeps ink text everywhere, including our own bits */
+.sv-install .pwa-install{justify-content:flex-start;margin-bottom:8px;font-size:13.5px;padding:8px 14px}
+.shell.is-rail .sv-install .pwa-install{justify-content:center;padding:8px 0}
+
+/* back to the author's site — the one dark control in the sidebar, so it reads
+   as a deliberate way out on either tone. White on ink is 15.4:1. */
+.sv-site{justify-content:flex-start;background:var(--ink);border-color:var(--ink);color:#FFFFFF;margin-top:8px}
+.sv-site:hover{background:var(--night-2);border-color:var(--night-2);color:#FFFFFF}
+.sv-site svg{color:#FFFFFF}
+.shell.is-rail .sv-site{justify-content:center}
+
+/* == the yellow sidebar is the default, so everything in it is checked
+      against #EAC81C, never against white. Ink text only. == */
+/* --amber-darker on the yellow fill is 4.4:1 — fine for the icon shapes it was
+   drawn for, short of 4.5:1 for the 10-11px mono labels. These get a darker
+   ink-brown so the tenant line, group headings and the open-alert count stay
+   legible on the fill. */
+.side[data-tone="amber"]{--sv-label-on-amber:#4A3B00}
 .side[data-tone="amber"] .sv-org__name,
 .side[data-tone="amber"] .sv-reset{color:var(--ink)}
+.side[data-tone="amber"] .side__tag,
+.side[data-tone="amber"] .navgroup__label,
+.side[data-tone="amber"] .navlink__count,
 .side[data-tone="amber"] .sv-org .label,
-.side[data-tone="amber"] .sv-org .faint{color:var(--amber-darker)}
+.side[data-tone="amber"] .sv-org .faint{color:var(--sv-label-on-amber)}
+/* the shared focus ring is brand amber, which vanishes on the amber fill */
+.side[data-tone="amber"] :focus-visible{outline-color:var(--ink)}
+.side[data-tone="amber"] ::selection{background:var(--ink);color:var(--amber-fill)}
+/* the dark site link keeps its own fill against the sidebar button styling */
+.side[data-tone="amber"] .sv-site{background:var(--ink);border-color:var(--ink);color:#FFFFFF}
+.side[data-tone="amber"] .sv-site:hover{background:var(--night-2);border-color:var(--night-2)}
 .sv-topttl{min-width:0}
 .sv-navscrim{position:fixed;inset:0;background:rgba(23,24,26,.34);z-index:60}
 .sv-navscrim--drawer{z-index:66}
@@ -25,6 +50,10 @@
 .sv-about__b{margin-top:16px}
 .sv-about__b h4{margin-bottom:4px}
 .sv-about__b p{line-height:1.6}
+.sv-about__list{list-style:none;margin-top:6px;display:grid;gap:8px}
+.sv-about__list li{position:relative;padding-left:15px;font-size:13px;line-height:1.6;color:var(--muted)}
+.sv-about__list li::before{content:"";position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:var(--amber-fill)}
+.sv-about__list strong{color:var(--ink);font-weight:600}
 
 /* == small shared bits == */
 .sv-stat--fit{font-size:22px;overflow-wrap:anywhere}

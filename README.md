@@ -10,6 +10,34 @@ backend. Open `index.html` from any static file server and the whole product is 
 
 ---
 
+## What this is
+
+Stackview is one picture of what a business runs and what it pays for. It puts every resource —
+across cloud providers and the on-prem racks — in a single inventory, then reads cost by service,
+by environment and by team on top of it. Access and MFA status, open alerts and 30-day uptime sit
+on the same estate, so the answer to "what do we run, what does it cost, who can get into it" is
+one screen rather than three consoles.
+
+## Where it helps a business
+
+- **One inventory** — nobody opens three provider consoles to answer "what do we run". Cloud and
+  on-prem are in the same table, with the same filters.
+- **Waste is found before the bill** — idle and forgotten resources are listed with a reason and a
+  monthly figure, instead of being noticed at billing time.
+- **Every resource has an owner** — ownership is attached to the resource, so there is a named
+  person to ask before anything is switched off.
+- **Access review is already written** — stale accounts, admin without MFA and old keys are listed
+  continuously, so the review stops being an annual scramble.
+- **Alerts leave a trail** — acknowledgements and mutes are recorded against the alert, so an
+  incident can be reconstructed after the fact.
+
+## How it would work for real
+
+The same interface, reading from the provider APIs and the identity directory instead of sample
+data, with the inventory, the cost lines and the access findings refreshed on a schedule. What you
+are looking at here is the interface and the workflow — no account is connected and nothing is
+being polled.
+
 ## How this demo works
 
 **You can actually use it.** Acknowledge and mute alerts, stop resources and reassign owners, work
@@ -25,7 +53,7 @@ between browsers or devices.
 app's own demo data. It is a demonstration of the interaction, not a connected model, and no
 request leaves your browser.
 
-The same three points are in the app behind the **Demo** pill in the topbar and the **About this
+The same four blocks are in the app behind the **Demo** pill in the topbar and the **About this
 demo** item in the sidebar footer.
 
 ---
@@ -78,8 +106,8 @@ handles seventeen question shapes:
 - what are the most expensive resources
 
 There is one way in and only one: the round launcher at the bottom right, or <kbd>⌘K</kbd> /
-<kbd>Ctrl K</kbd> from anywhere. The launcher is icon only — a single speech bubble, 52px, with its
-name on the tooltip and on the accessible label.
+<kbd>Ctrl K</kbd> from anywhere. The launcher is icon only — the agent mark, a four-point spark with
+a smaller trailing spark, 52px, with its name on the tooltip and on the accessible label.
 
 Every suggestion chip the assistant can ever show — the opening four, the three it offers after
 each answer, and the ones named in its fallback lines — was asked back to it in a browser and
@@ -96,6 +124,19 @@ python3 -m http.server 4106
 Any static server works — `npx serve`, `php -S`, nginx. It must be served over HTTP rather than
 opened as a `file://` path, because the app is built from ES modules.
 
+## Install it
+
+stackview is a progressive web app. Served over HTTPS (or from `localhost`), the browser offers to
+install it and an **Install app** control appears in the sidebar footer; on iPhone and iPad the
+control explains the Share → Add to Home Screen route instead, because Safari has no install
+prompt. Installed, it opens in its own window with no browser chrome.
+
+A service worker (`sw.js`) caches the whole shell — the page, both stylesheets, every module, the
+manifest and the icons — on first visit, so a reload works with no connection at all. There is
+still no network call in the application code; the demo data is generated locally either way.
+`manifest.webmanifest` carries the name, the `#EAC81C` theme colour and the three icons under
+`assets/icons/`. Bump `CACHE_VERSION` in `sw.js` when the file list changes.
+
 ## Deploy to GitHub Pages
 
 1. Push this folder as the repository root.
@@ -110,10 +151,14 @@ Google Fonts stylesheet for Inter and JetBrains Mono.
 ```
 stackview/
   index.html              single page, hash routed
+  manifest.webmanifest    installable app metadata
+  sw.js                   service worker, caches the shell for offline use
   assets/app.css          shared product UI kit
   assets/stackview.css    app specific components
+  assets/icons/           192, 512 and maskable 512 app icons
   lib/ui.js               DOM helpers, router, store, toast, modal, charts, icons
   lib/assistant.js        offline assistant engine
+  lib/pwa.js              service worker registration and the install control
   src/main.js             boot: shell, nav, router, drawer, shortcuts, assistant
   src/data.js             seeded demo estate and derived helpers
   src/agent.js            Stackview Insight intents over live state
@@ -123,16 +168,24 @@ stackview/
 
 ## The sidebar
 
-Two controls sit in the sidebar footer, one click from every screen:
+**The brand yellow is the default.** A first visit renders the navigation as a solid `#EAC81C`
+panel with ink text; plain white is the alternative, one click away. Everything inside it is
+checked against the yellow rather than against white — the tenant line, the group headings and the
+open-alert count sit at 6.7:1, the nav labels at 10.8:1, and the focus ring turns ink so it does
+not disappear into the fill. White text on yellow never appears.
+
+The footer controls, one click from every screen:
 
 - **Collapse / Expand** — drops the sidebar to a 64px icon rail. Labels, group headings and the
   alert count go; every nav icon keeps its name on a tooltip and an `aria-label`. Under 900px the
   sidebar is already a drawer, so the rail control hides itself and stays out of the way.
-- **Yellow / White** — switches the sidebar to the brand yellow. Text stays ink on yellow, never
-  white.
+- **White / Yellow** — switches the sidebar between the brand yellow and plain white.
+- **Install app** — appears only when the browser can actually install the app.
+- **Reset demo data**, **About this demo**, and a link out to **nasvih.in**, the one dark control in
+  the sidebar so it reads as a deliberate way out on either tone.
 
-Both report `aria-pressed`, and both are remembered under `stackview.prefs.v1` — a display choice,
-so **Reset demo data** deliberately leaves them alone.
+Both toggles report `aria-pressed`, and both are remembered under `stackview.prefs.v1` — a display
+choice, so **Reset demo data** deliberately leaves them alone.
 
 ## Demo notes
 

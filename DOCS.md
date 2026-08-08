@@ -2,6 +2,34 @@
 
 How the application is put together, what the data looks like, and where to add things.
 
+## What this is
+
+Stackview is one picture of what a business runs and what it pays for. It puts every resource —
+across cloud providers and the on-prem racks — in a single inventory, then reads cost by service,
+by environment and by team on top of it. Access and MFA status, open alerts and 30-day uptime sit
+on the same estate, so the answer to "what do we run, what does it cost, who can get into it" is
+one screen rather than three consoles.
+
+## Where it helps a business
+
+- **One inventory** — nobody opens three provider consoles to answer "what do we run". Cloud and
+  on-prem are in the same table, with the same filters.
+- **Waste is found before the bill** — idle and forgotten resources are listed with a reason and a
+  monthly figure, instead of being noticed at billing time.
+- **Every resource has an owner** — ownership is attached to the resource, so there is a named
+  person to ask before anything is switched off.
+- **Access review is already written** — stale accounts, admin without MFA and old keys are listed
+  continuously, so the review stops being an annual scramble.
+- **Alerts leave a trail** — acknowledgements and mutes are recorded against the alert, so an
+  incident can be reconstructed after the fact.
+
+## How it would work for real
+
+The same interface, reading from the provider APIs and the identity directory instead of sample
+data, with the inventory, the cost lines and the access findings refreshed on a schedule. What you
+are looking at here is the interface and the workflow — no account is connected and nothing is
+being polled.
+
 ## How this demo works
 
 **You can actually use it.** Acknowledge and mute alerts, stop resources and reassign owners, work
@@ -17,6 +45,10 @@ between browsers or devices.
 app's own demo data. It is a demonstration of the interaction, not a connected model, and no
 request leaves your browser.
 
+The four blocks above are the `ABOUT` array in `src/main.js`, rendered by `aboutModal()`. It closes
+the mobile sidebar before it opens, because under 900px the sidebar drawer (`z-index:65`) sits above
+the modal scrim (`z-index:60`).
+
 ## Architecture
 
 Plain ES modules loaded straight by the browser. There is no bundler, no transpiler, no package
@@ -27,7 +59,10 @@ index.html
   └─ src/main.js                 builds the shell, owns the router and the drawer
        ├─ src/data.js            seed + store + derived selectors
        ├─ src/agent.js           assistant configuration
+       ├─ lib/pwa.js             service worker registration + install control
        └─ src/views/<name>.js    render(ctx) -> Node, one per screen
+sw.js                            registered by lib/pwa.js, caches the shell
+manifest.webmanifest             linked from index.html
 ```
 
 **Rendering.** Everything is built with the `h(tag, attrs, ...children)` helper from `lib/ui.js`,
@@ -48,7 +83,9 @@ seeds if there is nothing there. `store.update(fn)` mutates the state, writes it
 subscribers. `store.reset()` re-seeds. That is the whole state layer.
 
 **Sidebar chrome.** The rail collapse and the sidebar colour are display preferences, not demo
-data, so they live in their own `stackview.prefs.v1` key and survive **Reset demo data**.
+data, so they live in their own `stackview.prefs.v1` key and survive **Reset demo data**. The
+defaults are `{ rail: false, tone: 'amber' }` — **the brand yellow is the default sidebar**, so a
+visitor with nothing stored gets `data-tone="amber"`; `'default'` is the plain white alternative.
 `applyChrome()` in `src/main.js` is the single place that writes them to the DOM: it toggles
 `is-rail` on `.shell`, sets `data-tone` on `.side`, rewrites both buttons' glyph, label,
 `title` and `aria-pressed`, then re-runs `renderNav()` so the nav links pick up or drop their
@@ -59,7 +96,24 @@ boundary. The rail button hides itself under 900px in `assets/stackview.css`.
 
 **One assistant entry point.** `Assistant.mount()` installs the round launcher and the
 ⌘K / Ctrl+K binding. Nothing else in the app opens the panel; there is no topbar or sidebar
-shortcut to it, by design.
+shortcut to it, by design. The launcher glyph is the agent mark from `lib/assistant.js` — a
+four-point spark with a smaller trailing spark, drawn at 23px inside the 52px disc.
+
+**Installable.** `initPWA({ mount, appName, onNote })` from `lib/pwa.js` is called once at the end
+of `src/main.js`. It registers `sw.js` on `load`, then appends an **Install app** button into the
+`.sv-install` slot in the sidebar footer. The button starts hidden and is revealed by
+`beforeinstallprompt`; on iOS, where that event never fires, it is visible from the start and
+explains the Share → Add to Home Screen route through `onNote`, which is wired to the app's
+`toast()`. It removes itself on `appinstalled` and never mounts at all when the app is already
+running in standalone display mode.
+
+`sw.js` holds an explicit `SHELL` array — the page, both stylesheets, every module under `lib/` and
+`src/`, the manifest and the three icons. Install pre-caches them, activate deletes any cache whose
+key does not match the current `CACHE_VERSION`, and fetch is cache-first for same-origin requests
+with a navigation fallback to `./index.html`, so a reload with no connection still renders. The
+Google Fonts stylesheet and its woff2 files are cross-origin, so they are network-first and fall
+back to whatever was cached on the last online visit. **Bump `CACHE_VERSION` whenever the file list
+or any cached asset changes**, otherwise returning visitors keep the old shell.
 
 ## Data model
 
@@ -124,7 +178,7 @@ produces the Kubernetes step change this month and the steady on-prem line. The 
 
 | File | Responsibility |
 |---|---|
-| `src/main.js` | Shell markup, sidebar nav with the open-alert count, rail and colour toggles, topbar, route table, drawer helper, keyboard shortcuts, "About this demo" modal, reset action, assistant mount |
+| `src/main.js` | Shell markup, sidebar nav with the open-alert count, rail and colour toggles, install slot, site link, topbar, route table, drawer helper, keyboard shortcuts, "About Stackview" modal, reset action, assistant and PWA mount |
 | `src/data.js` | Resource blueprint, alerts, users, uptime strips, cost history, seed, store, selectors |
 | `src/agent.js` | 17 intents and 4 fallbacks for Stackview Insight, all reading `store.state` |
 | `src/views/overview.js` | Stat row, spend bars, environment meters, provider tiles, waste table, alert list, access hygiene, activity timeline |
@@ -136,9 +190,12 @@ produces the Kubernetes step change this month and the steady on-prem line. The 
 | `src/views/reports.js` | Review notes from live state, six CSV downloads, generated review records |
 | `lib/ui.js` | `h/qs/qsa/on/esc`, formatting, `seeded/pick/between`, `createStore`, `router`, `toast`, `modal`, `confirmDialog`, `downloadCSV`, `barChart`, `meter`, `icon/ICONS` |
 | `lib/assistant.js` | Intent routing, word-by-word streaming, launcher panel, docked panel |
+| `lib/pwa.js` | Service worker registration, install prompt capture, the install control |
+| `sw.js` | Versioned cache of the shell file list, cache-first fetch, navigation fallback |
 
-`lib/ui.js`, `lib/assistant.js` and `assets/app.css` are copies of the shared product kit and are
-kept unmodified so the app can be dropped into its own repository unchanged.
+`lib/ui.js`, `lib/assistant.js`, `lib/pwa.js` and `assets/app.css` are copies of the shared product
+kit and are kept unmodified so the app can be dropped into its own repository unchanged. `sw.js` is
+the kit worker with this app's own `SHELL` list filled in — the one line each app must edit.
 
 ## The assistant
 
@@ -214,7 +271,8 @@ never removed.
 
 ## Design tokens
 
-All from `assets/app.css`. `assets/stackview.css` only composes them — it defines no new colours.
+All from `assets/app.css`. `assets/stackview.css` composes them and adds exactly one colour of its
+own, `--sv-label-on-amber`, explained below.
 
 | Token | Value | Used for |
 |---|---|---|
@@ -230,8 +288,26 @@ All from `assets/app.css`. `assets/stackview.css` only composes them — it defi
 | `--r-lg` / `--r` / `--r-sm` / `--r-xs` | 12 / 8 / 6 / 4 px | radii |
 | `--sans` / `--mono` | Inter / JetBrains Mono | UI text / labels, numbers, identifiers |
 
-The yellow sidebar (`.side[data-tone="amber"]`) is `--amber-fill` with `--ink` text — 10.8:1 — and
-`--amber-darker` for the quiet lines. White text on yellow never appears.
+### The yellow sidebar is the default
+
+`.side[data-tone="amber"]` is `--amber-fill` with `--ink` text — 10.8:1 — and it is what a first
+visit renders. That makes the yellow the resting state rather than an opt-in, so everything sitting
+on it is measured against `#EAC81C`, never against white:
+
+| Element | Colour | On `#EAC81C` |
+|---|---|---|
+| Brand name, nav labels, tenant name, footer button text | `--ink` `#17181A` | 10.8:1 |
+| Brand tag, group headings, the open-alert count, tenant label and units | `--sv-label-on-amber` `#4A3B00` | 6.7:1 |
+| Nav icons | `--amber-darker` `#6B5400` | 4.4:1 — graphics, so the 3:1 bar applies |
+| Active nav link | `--ink` on `--bg` | 15.9:1 |
+| nasvih.in link | `#FFFFFF` on `--ink` | 15.4:1 |
+
+`--sv-label-on-amber` exists because `--amber-darker` lands at 4.4:1 on the fill — fine for the icon
+shapes it was drawn for, short of 4.5:1 for the 10–11px mono labels that are now on screen by
+default. Two more overrides live in `assets/stackview.css` for the same reason: the shared focus
+ring is `--amber`, which is invisible on the amber fill, so inside the yellow sidebar it becomes
+`--ink`; and `::selection` is inverted there for the same reason. White text on yellow never
+appears anywhere.
 
 Rules the stylesheet keeps: solid fills only — no gradients, no blur, no glow shadows, no emoji as
 icons. Icons are inline stroke SVG using `currentColor`. Status is never signalled by colour alone;
