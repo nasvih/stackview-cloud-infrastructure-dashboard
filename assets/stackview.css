@@ -19,6 +19,12 @@
 .sv-site:hover{background:var(--night-2);border-color:var(--night-2);color:#FFFFFF}
 .sv-site svg{color:#FFFFFF}
 .shell.is-rail .sv-site{justify-content:center}
+/* source link: an ordinary outline control, so nasvih.in stays the only
+   inverted element in the footer */
+.side__foot .sv-src{justify-content:flex-start;margin-top:6px}
+.shell.is-rail .side__foot .sv-src{justify-content:center}
+.sv-about__src{border-top:1px solid var(--line);padding-top:14px}
+.sv-about__src .sv-src{margin-top:10px}
 
 /* == the yellow sidebar is the default, so everything in it is checked
       against #EAC81C, never against white. Ink text only. ==

@@ -1,21 +1,57 @@
-MIT License
+PROPRIETARY SOURCE-AVAILABLE LICENCE
 
-Copyright (c) 2026 Muhammed Nasvih V
+Copyright (c) 2026 Muhammed Nasvih V. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This repository — including its source code, design system, layouts, visual
+design, interface copy, documentation, sample data and the overall structure
+and arrangement of the work — is the exclusive property of Muhammed Nasvih V
+("the Author"). It is published openly so that it can be read, run and
+evaluated. It is NOT open source, and no licence to reuse it is granted.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. WHAT YOU MAY DO
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+   a. View, read and study the source code and documentation.
+   b. Run the application locally, unmodified, for personal evaluation,
+      learning, or to assess the Author's work.
+   c. Quote short excerpts in reviews, articles, teaching material or
+      technical discussion, with clear attribution to the Author and a link
+      to this repository.
+
+2. WHAT YOU MAY NOT DO WITHOUT THE AUTHOR'S PRIOR WRITTEN PERMISSION
+
+   a. Copy, reproduce or republish this work or any substantial part of it.
+   b. Modify it, or create derivative or adapted works from it.
+   c. Distribute, sublicense, sell, rent, or otherwise make it available to
+      others, whether or not for payment.
+   d. Use it, in whole or in substantial part, in any product, service,
+      client project, portfolio, submission or commercial offering.
+   e. Host or deploy it publicly under any name.
+   f. Remove, obscure or alter this notice or any attribution in the work.
+   g. Use the work, in whole or in part, as training data for machine
+      learning or artificial intelligence systems.
+
+3. RESERVATION OF RIGHTS
+
+   All rights not expressly granted in section 1 are reserved by the Author.
+   Nothing here transfers ownership, and no right is granted by implication,
+   estoppel, or otherwise. Publishing this repository publicly does not place
+   it in the public domain and does not waive any right.
+
+4. NO WARRANTY
+
+   The work is provided "as is", without warranty of any kind, express or
+   implied, including but not limited to the warranties of merchantability,
+   fitness for a particular purpose and non-infringement. The Author is not
+   liable for any claim, damages or other liability arising from the work or
+   its use.
+
+5. ENFORCEMENT AND TERMINATION
+
+   Any use outside section 1 is an infringement of copyright and terminates
+   the permissions in section 1 automatically and immediately. The Author
+   reserves every remedy available in law and in equity.
+
+6. PERMISSION REQUESTS
+
+   Permission for any other use may be granted in writing. Ask first:
+   Muhammed Nasvih V — nasvih.va@gmail.com — https://www.nasvih.in

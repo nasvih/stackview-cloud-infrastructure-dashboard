@@ -47,7 +47,12 @@ const GLYPH = {
   expand: '<svg viewBox="0 0 20 20"><path d="M8.4 5.6L12.8 10l-4.4 4.4"/><path d="M4.6 3.6v12.8"/></svg>',
   tone: '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.6"/><path d="M10 3.4a6.6 6.6 0 0 1 0 13.2z" fill="currentColor" stroke="none"/></svg>',
   external: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11.2 4.2h4.6v4.6"/><path d="M15.8 4.2l-6.4 6.4"/><path d="M14.4 11.6v3.6a1.6 1.6 0 0 1-1.6 1.6H4.8a1.6 1.6 0 0 1-1.6-1.6V7.2a1.6 1.6 0 0 1 1.6-1.6h3.6"/></svg>',
+  code: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.4 5.8L3.2 10l4.2 4.2"/><path d="M12.6 5.8L16.8 10l-4.2 4.2"/><path d="M11.1 4.1L8.9 15.9"/></svg>',
 };
+
+/* the repository this demo is published from */
+const SOURCE_URL = 'https://github.com/nasvih/stackview-cloud-infrastructure-dashboard';
+const SOURCE_NOTE = 'The source is published so it can be read, run and evaluated. It is not open source — copying, modifying, redistributing, deploying it or using it as training data needs written permission. See the LICENSE file in the repository.';
 
 const railBtn = h('button', {
   class: 'btn btn--sm sv-railbtn',
@@ -104,7 +109,18 @@ export function aboutModal() {
       b.list
         ? h('ul', { class: 'sv-about__list' },
             ...b.list.map(([lead, rest]) => h('li', {}, h('strong', {}, lead), ` — ${rest}`)))
-        : null)));
+        : null)),
+    h('div', { class: 'sv-about__b sv-about__src' },
+      h('h4', {}, 'The source'),
+      h('p', { class: 'small muted' }, SOURCE_NOTE),
+      h('a', {
+        class: 'btn btn--sm sv-src',
+        href: SOURCE_URL,
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        'aria-label': 'Source on GitHub — opens in a new tab',
+        html: `${GLYPH.code}<span>Source on GitHub</span>`,
+      })));
   modal({ title: 'About Stackview', body, actions: [{ label: 'Got it', class: 'btn--primary' }] });
 }
 
@@ -152,6 +168,15 @@ const side = h('aside', { class: 'side', id: 'sidebar' },
       'aria-label': 'nasvih.in — opens in a new tab',
       title: 'nasvih.in — opens in a new tab',
       html: `${GLYPH.external}<span>nasvih.in</span>`,
+    }),
+    h('a', {
+      class: 'btn btn--block sv-src',
+      href: SOURCE_URL,
+      target: '_blank',
+      rel: 'noopener noreferrer',
+      'aria-label': 'Source on GitHub — opens in a new tab',
+      title: 'Source on GitHub — opens in a new tab',
+      html: `${GLYPH.code}<span>Source on GitHub</span>`,
     })));
 
 const scrim = h('div', { class: 'sv-navscrim', hidden: true, onclick: () => setSidebar(false) });

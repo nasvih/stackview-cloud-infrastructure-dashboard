@@ -286,9 +286,13 @@ table.data td.right,table.data th.right{text-align:right}
 .side[data-tone="amber"] .side__foot{border-color:rgba(23,24,26,.16)}
 .side[data-tone="amber"] .mark{background:var(--ink);color:var(--amber-fill)}
 .side[data-tone="amber"] .side__name{color:var(--ink)}
+/* muted text on yellow: --amber-darker is 4.41:1 here, under AA, so the
+   sidebar's quiet text uses ink-2 (8:1) instead. */
 .side[data-tone="amber"] .side__tag,
 .side[data-tone="amber"] .navgroup__label,
-.side[data-tone="amber"] .navlink__count{color:var(--amber-darker)}
+.side[data-tone="amber"] .navlink__count{color:var(--ink-2)}
+/* the default focus ring is --amber, which vanishes against the yellow */
+.side[data-tone="amber"] :focus-visible{outline-color:var(--ink)}
 .side[data-tone="amber"] .navlink{color:var(--ink)}
 .side[data-tone="amber"] .navlink svg{color:var(--amber-darker)}
 .side[data-tone="amber"] .navlink:hover{background:rgba(23,24,26,.07)}

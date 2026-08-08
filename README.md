@@ -8,6 +8,11 @@ backend. Open `index.html` from any static file server and the whole product is 
 
 **Author:** Muhammed Nasvih V — [nasvih.in](https://www.nasvih.in) · [github.com/nasvih](https://github.com/nasvih)
 
+**Source:** https://github.com/nasvih/stackview-cloud-infrastructure-dashboard
+
+Published so it can be read, run and evaluated. It is not open source — see [LICENSE](LICENSE)
+before reusing any part of it.
+
 ---
 
 ## What this is
@@ -181,8 +186,9 @@ The footer controls, one click from every screen:
   sidebar is already a drawer, so the rail control hides itself and stays out of the way.
 - **White / Yellow** — switches the sidebar between the brand yellow and plain white.
 - **Install app** — appears only when the browser can actually install the app.
-- **Reset demo data**, **About this demo**, and a link out to **nasvih.in**, the one dark control in
-  the sidebar so it reads as a deliberate way out on either tone.
+- **Reset demo data**, **About this demo**, a link out to **nasvih.in** — the one dark control in
+  the sidebar, so it reads as a deliberate way out on either tone — and **Source on GitHub**, an
+  ordinary outline control beside it.
 
 Both toggles report `aria-pressed`, and both are remembered under `stackview.prefs.v1` — a display
 choice, so **Reset demo data** deliberately leaves them alone.

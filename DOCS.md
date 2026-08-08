@@ -45,9 +45,13 @@ between browsers or devices.
 app's own demo data. It is a demonstration of the interaction, not a connected model, and no
 request leaves your browser.
 
-The four blocks above are the `ABOUT` array in `src/main.js`, rendered by `aboutModal()`. It closes
-the mobile sidebar before it opens, because under 900px the sidebar drawer (`z-index:65`) sits above
-the modal scrim (`z-index:60`).
+The four blocks above are the `ABOUT` array in `src/main.js`, rendered by `aboutModal()`, followed
+by a fifth block linking to the repository and stating the licence terms (`SOURCE_URL` and
+`SOURCE_NOTE`). The modal closes the mobile sidebar before it opens, because under 900px the
+sidebar drawer (`z-index:65`) sits above the modal scrim (`z-index:60`).
+
+The source is published to be read and evaluated; it is **not** open source. Copying, modifying,
+redistributing, deploying it or using it as training data needs written permission — see `LICENSE`.
 
 ## Architecture
 
@@ -178,7 +182,7 @@ produces the Kubernetes step change this month and the steady on-prem line. The 
 
 | File | Responsibility |
 |---|---|
-| `src/main.js` | Shell markup, sidebar nav with the open-alert count, rail and colour toggles, install slot, site link, topbar, route table, drawer helper, keyboard shortcuts, "About Stackview" modal, reset action, assistant and PWA mount |
+| `src/main.js` | Shell markup, sidebar nav with the open-alert count, rail and colour toggles, install slot, site and source links, topbar, route table, drawer helper, keyboard shortcuts, "About Stackview" modal, reset action, assistant and PWA mount |
 | `src/data.js` | Resource blueprint, alerts, users, uptime strips, cost history, seed, store, selectors |
 | `src/agent.js` | 17 intents and 4 fallbacks for Stackview Insight, all reading `store.state` |
 | `src/views/overview.js` | Stat row, spend bars, environment meters, provider tiles, waste table, alert list, access hygiene, activity timeline |
