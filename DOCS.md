@@ -271,8 +271,7 @@ never removed.
 
 ## Design tokens
 
-All from `assets/app.css`. `assets/stackview.css` composes them and adds exactly one colour of its
-own, `--sv-label-on-amber`, explained below.
+All from `assets/app.css`. `assets/stackview.css` only composes them — it defines no new colours.
 
 | Token | Value | Used for |
 |---|---|---|
@@ -297,17 +296,17 @@ on it is measured against `#EAC81C`, never against white:
 | Element | Colour | On `#EAC81C` |
 |---|---|---|
 | Brand name, nav labels, tenant name, footer button text | `--ink` `#17181A` | 10.8:1 |
-| Brand tag, group headings, the open-alert count, tenant label and units | `--sv-label-on-amber` `#4A3B00` | 6.7:1 |
+| Brand tag, group headings, the open-alert count, tenant label and units | `--ink-2` `#2E3033` | 8.0:1 |
 | Nav icons | `--amber-darker` `#6B5400` | 4.4:1 — graphics, so the 3:1 bar applies |
 | Active nav link | `--ink` on `--bg` | 15.9:1 |
 | nasvih.in link | `#FFFFFF` on `--ink` | 15.4:1 |
 
-`--sv-label-on-amber` exists because `--amber-darker` lands at 4.4:1 on the fill — fine for the icon
-shapes it was drawn for, short of 4.5:1 for the 10–11px mono labels that are now on screen by
-default. Two more overrides live in `assets/stackview.css` for the same reason: the shared focus
-ring is `--amber`, which is invisible on the amber fill, so inside the yellow sidebar it becomes
-`--ink`; and `::selection` is inverted there for the same reason. White text on yellow never
-appears anywhere.
+`--amber-darker` lands at 4.4:1 on the fill — fine for the icon shapes it was drawn for, short of
+4.5:1 for the 10–11px mono labels that are now on screen by default, so `app.css` holds the quiet
+sidebar text at `--ink-2` and `assets/stackview.css` does the same for stackview's own footer
+lines. The shared focus ring is `--amber`, invisible on the amber fill, so `app.css` turns it
+`--ink` inside the yellow sidebar; `assets/stackview.css` inverts `::selection` there for the same
+reason. White text on yellow never appears anywhere.
 
 Rules the stylesheet keeps: solid fills only — no gradients, no blur, no glow shadows, no emoji as
 icons. Icons are inline stroke SVG using `currentColor`. Status is never signalled by colour alone;

@@ -171,8 +171,8 @@ stackview/
 **The brand yellow is the default.** A first visit renders the navigation as a solid `#EAC81C`
 panel with ink text; plain white is the alternative, one click away. Everything inside it is
 checked against the yellow rather than against white — the tenant line, the group headings and the
-open-alert count sit at 6.7:1, the nav labels at 10.8:1, and the focus ring turns ink so it does
-not disappear into the fill. White text on yellow never appears.
+open-alert count sit at 8:1, the nav labels at 10.8:1, and the focus ring turns ink so it does not
+disappear into the fill. White text on yellow never appears.
 
 The footer controls, one click from every screen:
 
@@ -196,4 +196,4 @@ choice, so **Reset demo data** deliberately leaves them alone.
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+All rights reserved. This repository is source-available: you may read it, run it locally and evaluate it, but copying, modifying, redistributing or using it in your own work needs written permission — see [LICENSE](LICENSE).

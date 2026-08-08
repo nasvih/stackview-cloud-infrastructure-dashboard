@@ -21,21 +21,15 @@
 .shell.is-rail .sv-site{justify-content:center}
 
 /* == the yellow sidebar is the default, so everything in it is checked
-      against #EAC81C, never against white. Ink text only. == */
-/* --amber-darker on the yellow fill is 4.4:1 — fine for the icon shapes it was
-   drawn for, short of 4.5:1 for the 10-11px mono labels. These get a darker
-   ink-brown so the tenant line, group headings and the open-alert count stay
-   legible on the fill. */
-.side[data-tone="amber"]{--sv-label-on-amber:#4A3B00}
+      against #EAC81C, never against white. Ink text only. ==
+   app.css already moves the shared quiet text (brand tag, group headings,
+   alert count) to --ink-2 on the fill and turns the focus ring ink. These are
+   stackview's own footer bits, held to the same rule: --amber-darker is 4.4:1
+   here, --ink-2 is 8:1. */
 .side[data-tone="amber"] .sv-org__name,
 .side[data-tone="amber"] .sv-reset{color:var(--ink)}
-.side[data-tone="amber"] .side__tag,
-.side[data-tone="amber"] .navgroup__label,
-.side[data-tone="amber"] .navlink__count,
 .side[data-tone="amber"] .sv-org .label,
-.side[data-tone="amber"] .sv-org .faint{color:var(--sv-label-on-amber)}
-/* the shared focus ring is brand amber, which vanishes on the amber fill */
-.side[data-tone="amber"] :focus-visible{outline-color:var(--ink)}
+.side[data-tone="amber"] .sv-org .faint{color:var(--ink-2)}
 .side[data-tone="amber"] ::selection{background:var(--ink);color:var(--amber-fill)}
 /* the dark site link keeps its own fill against the sidebar button styling */
 .side[data-tone="amber"] .sv-site{background:var(--ink);border-color:var(--ink);color:#FFFFFF}
