@@ -111,8 +111,8 @@ handles seventeen question shapes:
 - what are the most expensive resources
 
 There is one way in and only one: the round launcher at the bottom right, or <kbd>⌘K</kbd> /
-<kbd>Ctrl K</kbd> from anywhere. The launcher is icon only — the agent mark, a four-point spark with
-a smaller trailing spark, 52px, with its name on the tooltip and on the accessible label.
+<kbd>Ctrl K</kbd> from anywhere. The launcher is icon only — the agent mark, a minimal robot head
+in four stroke shapes, 52px, with its name on the tooltip and on the accessible label.
 
 Every suggestion chip the assistant can ever show — the opening four, the three it offers after
 each answer, and the ones named in its fallback lines — was asked back to it in a browser and
@@ -132,9 +132,9 @@ opened as a `file://` path, because the app is built from ES modules.
 ## Install it
 
 stackview is a progressive web app. Served over HTTPS (or from `localhost`), the browser offers to
-install it and an **Install app** control appears in the sidebar footer; on iPhone and iPad the
-control explains the Share → Add to Home Screen route instead, because Safari has no install
-prompt. Installed, it opens in its own window with no browser chrome.
+install it and an **Install app** control appears beside "Reset demo data" in the sidebar footer;
+on iPhone and iPad the control explains the Share → Add to Home Screen route instead, because
+Safari has no install prompt. Installed, it opens in its own window with no browser chrome.
 
 A service worker (`sw.js`) caches the whole shell — the page, both stylesheets, every module, the
 manifest and the icons — on first visit, so a reload works with no connection at all. There is
@@ -179,19 +179,25 @@ checked against the yellow rather than against white — the tenant line, the gr
 open-alert count sit at 8:1, the nav labels at 10.8:1, and the focus ring turns ink so it does not
 disappear into the fill. White text on yellow never appears.
 
-The footer controls, one click from every screen:
+Two icon-only controls sit on the brand row at the top of the sidebar, right of the app name:
 
-- **Collapse / Expand** — drops the sidebar to a 64px icon rail. Labels, group headings and the
-  alert count go; every nav icon keeps its name on a tooltip and an `aria-label`. Under 900px the
-  sidebar is already a drawer, so the rail control hides itself and stays out of the way.
-- **White / Yellow** — switches the sidebar between the brand yellow and plain white.
-- **Install app** — appears only when the browser can actually install the app.
-- **Reset demo data**, **About this demo**, a link out to **nasvih.in** — the one dark control in
-  the sidebar, so it reads as a deliberate way out on either tone — and **Source on GitHub**, an
-  ordinary outline control beside it.
+- **Collapse sidebar / Expand sidebar** — a panel with a chevron. Drops the sidebar to a 64px icon
+  rail: labels, group headings and the alert count go, and every nav icon keeps its name on a
+  tooltip and an `aria-label`. In the rail the brand row stacks so both controls stay reachable.
+  Under 900px the sidebar is already a drawer, so the rail control hides itself and stays out of
+  the way.
+- **Sidebar colour** — a circle half filled. Switches the sidebar between the brand yellow and
+  plain white. It names no colour: the glyph carries that, and `aria-pressed` reports whether the
+  yellow tone is on.
 
-Both toggles report `aria-pressed`, and both are remembered under `stackview.prefs.v1` — a display
-choice, so **Reset demo data** deliberately leaves them alone.
+Both report `aria-pressed`, and both are remembered under `stackview.prefs.v1` — a display choice,
+so **Reset demo data** deliberately leaves them alone.
+
+The footer below, one click from every screen: the tenant block, then **About this demo** across
+the top, then a link out to **nasvih.in** — the one dark control in the sidebar, so it reads as a
+deliberate way out on either tone — beside **Source on GitHub**, an ordinary outline control. On
+the last row, **Reset demo data**, joined by **Install app** when the browser can actually install
+the app; until then reset has the row to itself.
 
 ## Demo notes
 

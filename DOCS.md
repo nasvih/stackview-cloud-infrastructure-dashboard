@@ -90,22 +90,40 @@ subscribers. `store.reset()` re-seeds. That is the whole state layer.
 data, so they live in their own `stackview.prefs.v1` key and survive **Reset demo data**. The
 defaults are `{ rail: false, tone: 'amber' }` — **the brand yellow is the default sidebar**, so a
 visitor with nothing stored gets `data-tone="amber"`; `'default'` is the plain white alternative.
+Both controls live in `.side__brandbtns`, on the brand row beside the app name, and are icon-only —
+the kit clips their `<span>` and sizes them to 30×30, so the glyph and the accessible name do all
+the work. The rail control names the action it performs, *Collapse sidebar* / *Expand sidebar*, and
+swaps its glyph with the state. The colour control never names a colour at all: its `title` and
+`aria-label` stay *Sidebar colour*, its glyph is a circle half filled, and the tone is reported only
+through `aria-pressed`.
+
 `applyChrome()` in `src/main.js` is the single place that writes them to the DOM: it toggles
 `is-rail` on `.shell`, sets `data-tone` on `.side`, rewrites both buttons' glyph, label,
 `title` and `aria-pressed`, then re-runs `renderNav()` so the nav links pick up or drop their
 `title` / `aria-label` (in rail mode the visible text is hidden, so the name has to come from
 there). The rail class is only applied above 900px — below that the sidebar is a fixed drawer and
 a 64px grid column would break the layout — and a `resize` listener re-applies it across that
-boundary. The rail button hides itself under 900px in `assets/stackview.css`.
+boundary. The rail button hides itself under 900px in `assets/stackview.css`. In the rail
+`.shell.is-rail .side__brandbtns` stacks the pair into a column under the mark, so both stay
+reachable inside 64px.
+
+**Sidebar footer.** Below the tenant block: **About this demo** across the full width, then a
+`.side__pair` holding the dark `.sv-site` link to nasvih.in beside `.sv-src` for the repository,
+then a second `.side__pair` holding **Reset demo data**. A pair is a flex row whose children share
+the width and truncate their labels rather than overflow; the kit stacks it back into a column in
+the rail.
 
 **One assistant entry point.** `Assistant.mount()` installs the round launcher and the
 ⌘K / Ctrl+K binding. Nothing else in the app opens the panel; there is no topbar or sidebar
-shortcut to it, by design. The launcher glyph is the agent mark from `lib/assistant.js` — a
-four-point spark with a smaller trailing spark, drawn at 23px inside the 52px disc.
+shortcut to it, by design. The launcher glyph is the agent mark from `lib/assistant.js` — a minimal
+robot head in four stroke shapes, drawn at 23px inside the 52px disc.
 
 **Installable.** `initPWA({ mount, appName, onNote })` from `lib/pwa.js` is called once at the end
-of `src/main.js`. It registers `sw.js` on `load`, then appends an **Install app** button into the
-`.sv-install` slot in the sidebar footer. The button starts hidden and is revealed by
+of `src/main.js`. It registers `sw.js` on `load`, then appends an **Install app** button into
+`.sv-install`, the last `.side__pair` row in the sidebar footer — the one holding **Reset demo
+data**. `initPWA` appends, so `main.js` moves the control to the head of that row; while it is
+hidden `[hidden]{display:none!important}` takes it out of the flex row entirely and reset spans the
+row on its own. The button starts hidden and is revealed by
 `beforeinstallprompt`; on iOS, where that event never fires, it is visible from the start and
 explains the Share → Add to Home Screen route through `onNote`, which is wired to the app's
 `toast()`. It removes itself on `appinstalled` and never mounts at all when the app is already
@@ -182,7 +200,7 @@ produces the Kubernetes step change this month and the steady on-prem line. The 
 
 | File | Responsibility |
 |---|---|
-| `src/main.js` | Shell markup, sidebar nav with the open-alert count, rail and colour toggles, install slot, site and source links, topbar, route table, drawer helper, keyboard shortcuts, "About Stackview" modal, reset action, assistant and PWA mount |
+| `src/main.js` | Shell markup, sidebar nav with the open-alert count, the brand-row rail and colour controls, the paired footer rows, site and source links, topbar, route table, drawer helper, keyboard shortcuts, "About Stackview" modal, reset action, assistant and PWA mount |
 | `src/data.js` | Resource blueprint, alerts, users, uptime strips, cost history, seed, store, selectors |
 | `src/agent.js` | 17 intents and 4 fallbacks for Stackview Insight, all reading `store.state` |
 | `src/views/overview.js` | Stat row, spend bars, environment meters, provider tiles, waste table, alert list, access hygiene, activity timeline |
@@ -270,7 +288,7 @@ refresh, toast }`.
 | <kbd>Enter</kbd> / <kbd>Space</kbd> | Open the focused table row |
 
 Table rows are real focus targets, every icon-only button carries an `aria-label`, filter chips and
-the two sidebar toggles report `aria-pressed`, tabs report `aria-selected`, and the focus ring is
+the two sidebar chrome controls report `aria-pressed`, tabs report `aria-selected`, and the focus ring is
 never removed.
 
 ## Design tokens

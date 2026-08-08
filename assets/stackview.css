@@ -6,23 +6,22 @@
 /* == shell extras == */
 .sv-org{margin-bottom:10px}
 .sv-org__name{font-weight:600;font-size:13.5px;margin-top:4px}
-.side__toggles{margin-bottom:8px}
 .sv-reset{justify-content:flex-start;color:var(--muted);font-weight:500}
 .sv-reset:hover{color:var(--ink)}
 .shell.is-rail .sv-reset{justify-content:center}
-.sv-install .pwa-install{justify-content:flex-start;margin-bottom:8px;font-size:13.5px;padding:8px 14px}
-.shell.is-rail .sv-install .pwa-install{justify-content:center;padding:8px 0}
+/* the footer is About across the top, then two paired rows: the links, then
+   install beside reset. The rows carry the rhythm and centre what is in them,
+   so no member needs a margin or an alignment of its own. */
+.side__foot .side__pair{margin-top:8px}
+.side__pair .btn{justify-content:center}
 
 /* back to the author's site — the one dark control in the sidebar, so it reads
    as a deliberate way out on either tone. White on ink is 15.4:1. */
-.sv-site{justify-content:flex-start;background:var(--ink);border-color:var(--ink);color:#FFFFFF;margin-top:8px}
+.sv-site{background:var(--ink);border-color:var(--ink);color:#FFFFFF}
 .sv-site:hover{background:var(--night-2);border-color:var(--night-2);color:#FFFFFF}
 .sv-site svg{color:#FFFFFF}
-.shell.is-rail .sv-site{justify-content:center}
 /* source link: an ordinary outline control, so nasvih.in stays the only
    inverted element in the footer */
-.side__foot .sv-src{justify-content:flex-start;margin-top:6px}
-.shell.is-rail .side__foot .sv-src{justify-content:center}
 .sv-about__src{border-top:1px solid var(--line);padding-top:14px}
 .sv-about__src .sv-src{margin-top:10px}
 

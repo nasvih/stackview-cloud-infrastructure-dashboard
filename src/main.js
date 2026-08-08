@@ -41,7 +41,10 @@ const prefs = (() => {
 })();
 const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (_) {} };
 
-/* two small glyphs the shared icon set does not carry */
+/* Small glyphs the shared icon set does not carry. The two chrome controls on
+   the brand row show a glyph and nothing else, so theirs have to say what they
+   do on their own: a panel edge with a chevron pointing the way the sidebar
+   will move, and a circle half filled for the colour. */
 const GLYPH = {
   collapse: '<svg viewBox="0 0 20 20"><path d="M11.6 5.6L7.2 10l4.4 4.4"/><path d="M15.4 3.6v12.8"/></svg>',
   expand: '<svg viewBox="0 0 20 20"><path d="M8.4 5.6L12.8 10l-4.4 4.4"/><path d="M4.6 3.6v12.8"/></svg>',
@@ -54,14 +57,25 @@ const GLYPH = {
 const SOURCE_URL = 'https://github.com/nasvih/stackview-cloud-infrastructure-dashboard';
 const SOURCE_NOTE = 'The source is published so it can be read, run and evaluated. It is not open source — copying, modifying, redistributing, deploying it or using it as training data needs written permission. See the LICENSE file in the repository.';
 
+/* The colour control never names a colour: the glyph carries it and
+   aria-pressed reports whether the yellow tone is on. */
+const TONE_LABEL = 'Sidebar colour';
+const railLabel = (railed) => (railed ? 'Expand sidebar' : 'Collapse sidebar');
+
 const railBtn = h('button', {
   class: 'btn btn--sm sv-railbtn',
   type: 'button',
+  dataset: { chrome: 'rail' },
+  'aria-controls': 'sidebar',
   onclick: () => { prefs.rail = !prefs.rail; savePrefs(); applyChrome(); },
 });
 const toneBtn = h('button', {
   class: 'btn btn--sm',
   type: 'button',
+  dataset: { chrome: 'tone' },
+  'aria-controls': 'sidebar',
+  title: TONE_LABEL,
+  'aria-label': TONE_LABEL,
   onclick: () => { prefs.tone = prefs.tone === 'amber' ? 'default' : 'amber'; savePrefs(); applyChrome(); },
 });
 
@@ -124,60 +138,71 @@ export function aboutModal() {
   modal({ title: 'About Stackview', body, actions: [{ label: 'Got it', class: 'btn--primary' }] });
 }
 
+/* initPWA appends its control here, and only when the browser offers an
+   install; the row is a flex pair, so while the control is hidden the reset
+   button spans it on its own and nothing gaps. */
+const installRow = h('div', { class: 'side__pair sv-install' },
+  h('button', {
+    class: 'btn btn--ghost btn--block btn--sm sv-reset',
+    type: 'button',
+    title: 'Reset demo data',
+    'aria-label': 'Reset demo data',
+    onclick: async () => {
+      setSidebar(false);
+      const ok = await confirmDialog(
+        'This clears every change you made in this demo — acknowledged alerts, cleanup plans, offboarding progress and generated reports — and rebuilds the sample estate.',
+        { title: 'Reset demo data', okLabel: 'Reset', danger: true });
+      if (!ok) return;
+      store.reset();
+      toast('Demo data reset', 'ok');
+      render();
+    },
+    html: `${icon('refresh')}<span>Reset demo data</span>`,
+  }));
+
 const side = h('aside', { class: 'side', id: 'sidebar' },
   h('div', { class: 'side__brand' },
     h('span', { class: 'mark' }, 'SV'),
-    h('div', {},
+    h('div', { style: 'min-width:0' },
       h('div', { class: 'side__name' }, 'stackview'),
-      h('div', { class: 'side__tag' }, 'IT visibility'))),
+      h('div', { class: 'side__tag' }, 'IT visibility')),
+    /* rail and colour: icon-only, right of the name, stacked by the kit when
+       the sidebar narrows to the 64px rail */
+    h('div', { class: 'side__brandbtns' }, railBtn, toneBtn)),
   h('nav', { class: 'side__nav', id: 'nav', 'aria-label': 'Primary' }),
   h('div', { class: 'side__foot' },
     h('div', { class: 'sv-org side__sub' },
       h('span', { class: 'label' }, 'Tenant'),
       h('div', { class: 'sv-org__name' }, ORG.name),
       h('div', { class: 'small faint' }, ORG.units.join(' · '))),
-    h('div', { class: 'side__toggles' }, railBtn, toneBtn),
-    /* the install control is mounted here by initPWA, next to the two toggles */
-    h('div', { class: 'sv-install' }),
     h('button', {
       class: 'btn btn--ghost btn--block sv-reset',
       type: 'button',
-      onclick: async () => {
-        setSidebar(false);
-        const ok = await confirmDialog(
-          'This clears every change you made in this demo — acknowledged alerts, cleanup plans, offboarding progress and generated reports — and rebuilds the sample estate.',
-          { title: 'Reset demo data', okLabel: 'Reset', danger: true });
-        if (!ok) return;
-        store.reset();
-        toast('Demo data reset', 'ok');
-        render();
-      },
-      html: `${icon('refresh')}<span>Reset demo data</span>`,
-    }),
-    h('button', {
-      class: 'btn btn--ghost btn--block sv-reset',
-      type: 'button',
+      title: 'About this demo',
+      'aria-label': 'About this demo',
       onclick: () => aboutModal(),
       html: `${icon('eye')}<span>About this demo</span>`,
     }),
-    h('a', {
-      class: 'btn btn--block sv-site',
-      href: 'https://www.nasvih.in',
-      target: '_blank',
-      rel: 'noopener noreferrer',
-      'aria-label': 'nasvih.in — opens in a new tab',
-      title: 'nasvih.in — opens in a new tab',
-      html: `${GLYPH.external}<span>nasvih.in</span>`,
-    }),
-    h('a', {
-      class: 'btn btn--block sv-src',
-      href: SOURCE_URL,
-      target: '_blank',
-      rel: 'noopener noreferrer',
-      'aria-label': 'Source on GitHub — opens in a new tab',
-      title: 'Source on GitHub — opens in a new tab',
-      html: `${GLYPH.code}<span>Source on GitHub</span>`,
-    })));
+    h('div', { class: 'side__pair' },
+      h('a', {
+        class: 'btn btn--block btn--sm sv-site',
+        href: 'https://www.nasvih.in',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        'aria-label': 'nasvih.in — opens in a new tab',
+        title: 'nasvih.in — opens in a new tab',
+        html: `${GLYPH.external}<span>nasvih.in</span>`,
+      }),
+      h('a', {
+        class: 'btn btn--block btn--sm sv-src',
+        href: SOURCE_URL,
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        'aria-label': 'Source on GitHub — opens in a new tab',
+        title: 'Source on GitHub — opens in a new tab',
+        html: `${GLYPH.code}<span>Source on GitHub</span>`,
+      })),
+    installRow));
 
 const scrim = h('div', { class: 'sv-navscrim', hidden: true, onclick: () => setSidebar(false) });
 
@@ -222,16 +247,15 @@ function applyChrome() {
   shell.classList.toggle('is-rail', railed);
   side.setAttribute('data-tone', prefs.tone);
 
+  const label = railLabel(prefs.rail);
   railBtn.setAttribute('aria-pressed', prefs.rail ? 'true' : 'false');
-  railBtn.setAttribute('aria-label', prefs.rail ? 'Expand the sidebar' : 'Collapse the sidebar to icons');
-  railBtn.title = prefs.rail ? 'Expand the sidebar' : 'Collapse the sidebar to icons';
-  railBtn.innerHTML = `${prefs.rail ? GLYPH.expand : GLYPH.collapse}<span>${prefs.rail ? 'Expand' : 'Collapse'}</span>`;
+  railBtn.setAttribute('aria-label', label);
+  railBtn.title = label;
+  railBtn.innerHTML = `${prefs.rail ? GLYPH.expand : GLYPH.collapse}<span>${label}</span>`;
 
   const amber = prefs.tone === 'amber';
   toneBtn.setAttribute('aria-pressed', amber ? 'true' : 'false');
-  toneBtn.setAttribute('aria-label', amber ? 'Use the white sidebar' : 'Use the yellow sidebar');
-  toneBtn.title = amber ? 'Use the white sidebar' : 'Use the yellow sidebar';
-  toneBtn.innerHTML = `${GLYPH.tone}<span>${amber ? 'White' : 'Yellow'}</span>`;
+  toneBtn.innerHTML = `${GLYPH.tone}<span>${TONE_LABEL}</span>`;
 
   renderNav(current);
 }
@@ -349,12 +373,17 @@ document.addEventListener('keydown', (e) => {
 /* ---------- assistant ---------- */
 window.stackviewAssistant = buildAssistant(store).mount(document.body);
 
-/* ---------- installable ---------- */
-initPWA({
-  mount: qs('.sv-install'),
+/* ---------- installable ----------
+   initPWA appends, so the control is moved to the head of the row it shares
+   with "Reset demo data". While it is hidden it leaves the flex row entirely
+   and reset spans the row on its own, so nothing shifts on a browser that
+   never offers an install. */
+const installBtn = initPWA({
+  mount: installRow,
   appName: 'Stackview',
   onNote: (msg) => toast(msg),
 });
+if (installBtn) installRow.insertBefore(installBtn, installRow.firstChild);
 
 /* ---------- go ---------- */
 nav.go();
