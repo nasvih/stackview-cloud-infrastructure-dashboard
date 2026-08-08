@@ -41,13 +41,15 @@ storage. Nothing is sent to a server. There is no account, no backend, and no cl
 connected. Clear your browser data or use **Reset demo data** and it is all gone. It does not sync
 between browsers or devices.
 
-**The assistant is simulated.** Stackview Insight answers by matching your question against this
-app's own demo data. It is a demonstration of the interaction, not a connected model, and no
-request leaves your browser.
+**The assistant is simulated — and it acts.** Stackview Insight answers by matching your question
+against this app's own demo data. It is a demonstration of the interaction, not a connected model,
+and no request leaves your browser. Six of its intents change the workspace: they name what they
+will touch, wait for a press, then mutate the store and report before → after.
 
 The four blocks above are the `ABOUT` array in `src/main.js`, rendered by `aboutModal()`, followed
-by a fifth block linking to the repository and stating the licence terms (`SOURCE_URL` and
-`SOURCE_NOTE`). The modal closes the mobile sidebar before it opens, because under 900px the
+by the worked assistant examples (`ACTION_HELP`, imported from `src/agent.js` so the modal and the
+"What can you do?" answer can never drift apart) and a block linking to the repository and stating
+the licence terms (`SOURCE_URL` and `SOURCE_NOTE`). The modal closes the mobile sidebar before it opens, because under 900px the
 sidebar drawer (`z-index:65`) sits above the modal scrim (`z-index:60`).
 
 The source is published to be read and evaluated; it is **not** open source. Copying, modifying,
@@ -200,9 +202,10 @@ produces the Kubernetes step change this month and the steady on-prem line. The 
 
 | File | Responsibility |
 |---|---|
-| `src/main.js` | Shell markup, sidebar nav with the open-alert count, the brand-row rail and colour controls, the paired footer rows, site and source links, topbar, route table, drawer helper, keyboard shortcuts, "About Stackview" modal, reset action, assistant and PWA mount |
+| `src/main.js` | Shell markup, sidebar nav with the open-alert count, the brand-row rail and colour controls, the paired footer rows, site and source links, topbar with notifications, device preview and theme, route table, `rerender()`, drawer helper, keyboard shortcuts, "About Stackview" modal, reset action, assistant and PWA mount |
 | `src/data.js` | Resource blueprint, alerts, users, uptime strips, cost history, seed, store, selectors |
-| `src/agent.js` | 17 intents and 4 fallbacks for Stackview Insight, all reading `store.state` |
+| `src/agent.js` | 6 action intents, a capability intent and 17 read intents for Stackview Insight, 4 fallbacks, and the shared `ACTION_HELP` examples — all reading `store.state` |
+| `src/notify.js` | Derives the notification list from live state and builds the topbar bell, its panel and the persisted read marks |
 | `src/views/overview.js` | Stat row, spend bars, environment meters, provider tiles, waste table, alert list, access hygiene, activity timeline |
 | `src/views/resources.js` | Filter bar, sortable inventory table, CSV export, detail drawer with utilisation meters and the resource actions |
 | `src/views/cost.js` | Four tabs — service, environment, team, idle and waste — plus the cleanup plan and its export |
@@ -221,7 +224,9 @@ the kit worker with this app's own `SHELL` list filled in — the one line each 
 
 ## The assistant
 
-`src/agent.js` exports `buildAssistant(store)`. Each intent is:
+`src/agent.js` exports `buildAssistant(store, { refresh })`. `refresh` is `rerender()` from
+`src/main.js`; the assistant calls it after every write so the screen behind the panel redraws.
+Each intent is:
 
 ```js
 {
@@ -236,6 +241,46 @@ The highest scoring intent wins; with no match the assistant picks one of four f
 what it *can* answer. `text` supports `**bold**`, `` `code` `` and `- bullets`. `table` is
 `{ head:[], rows:[[]] }`. Because `context: () => store.state`, every answer reflects edits made a
 moment earlier — acknowledge an alert and the queue count in the reply drops.
+
+### Action intents
+
+An answer may carry `actions`, and that is the whole contract:
+
+```js
+{ text, table, meta, suggestions, actions: [{ label, doingLabel, run }] }
+```
+
+`lib/assistant.js` renders the actions as a button row under the reply. Pressing one disables the
+row, calls `run()`, replaces the row with the returned message, and can render further actions from
+`result.actions` — that is how "stop this resource" offers "add it to the cleanup plan too".
+`run()` returns `{ text, table, meta, suggestions, actions }` and is the only place a write happens:
+
+```js
+const apply = (fn) => { store.update(fn); refresh(); };   // mutate, persist, redraw
+```
+
+Rules the six action intents in this app follow, and any new one should:
+
+1. **Never mutate in `answer()`.** The answer reads state and describes the change. Only `run()`
+   writes, and only after a press.
+2. **Name the target.** The preview lists exactly what will be touched and how many; the button
+   label repeats it. Anything in production says so in the label — `Stop nl-prod-api-03 — this is
+   PRODUCTION`.
+3. **Refuse rather than guess.** `resourcesIn`, `usersIn`, `alertsIn` and `personAfterTo` resolve
+   the wording; if they return more than one candidate, or nothing, the answer lists what it found,
+   sets `meta: 'nothing was changed'` and offers no button.
+4. **Report before → after.** Re-read the store inside `run()` before and after the mutation and
+   print both numbers, including the money effect where there is one.
+5. **Leave a trail.** Push to `st.activity`, and to the alert timeline where there is one, so the
+   overview shows the change happened.
+6. **Set `suggestions: []` on a preview.** The chip row is drawn under the log and steals the height
+   the buttons need, which can push them out of view.
+
+Routing matters more than usual here: an action intent sits above the read intents in the array and
+must only match an imperative. `/\backnowledge\b/i` matches "acknowledge everything critical" but
+not "how many alerts are acknowledged", and `/\b(tag|label)\s+(every|all|the|…)/i` matches "tag
+every untagged resource" but not "which resources are untagged". After touching a `match` list, ask
+both shapes and check each lands where it should.
 
 ### Adding an intent
 
@@ -259,6 +304,30 @@ for (const it of bot.cfg.intents) (it.answer('probe', data.store.state).suggesti
 
 The same rule applies to the fallback strings: if a fallback tells the user to ask about X, then
 X has to route to a real intent.
+
+## Topbar controls
+
+| Control | Where | Notes |
+|---|---|---|
+| Notifications | `src/notify.js` | `buildNotifications(state)` derives the list on every paint from open critical alerts, budget drift against last month, elevated accounts without MFA, keys past a year and long-idle resources. Ids are stable (`alert:AL-2400`, `mfa:U-104`), and only the read ids are persisted, under `stackview.notifs.v1`. `store.subscribe` repaints the badge, so a change anywhere updates it. The outside-click handler reads `event.composedPath()` rather than the live DOM, because marking something read redraws the panel and detaches the button that was clicked |
+| Device preview | `src/main.js` | Phone mode appends `.sv-phone`: an `<iframe>` of `./index.html?frame=phone` plus the current hash, sized 390 × 844 inside a dark bezel on an `--amber-fill` surround. A real second viewport, so the real media queries apply. `FRAMED` hides the control inside the frame, and the whole control hides under 900px |
+| Dark mode | `src/main.js` + `assets/stackview.css` | `applyTheme()` writes `data-theme` on `<html>` and updates `<meta name="theme-color">`. `prefs.theme === null` means follow `prefers-color-scheme`, and the media query listener keeps following it until the reader picks a side. The inline script in `index.html` writes the attribute before first paint |
+
+### Dark mode and the yellow
+
+`app.css` carries the palette under `[data-theme="dark"]`. The one thing that must not follow it is
+the yellow sidebar: `--ink` becomes near-white in dark, which would put white text on `#EAC81C`.
+`assets/stackview.css` re-points the tokens inside that one subtree instead of restating the rules:
+
+```css
+[data-theme="dark"] .side[data-tone="amber"]{
+  --ink:#17181A; --ink-2:#2E3033; --bg:#FFFFFF; --surface:#FFFFFF; …
+}
+```
+
+Every shared rule that paints sidebar text then stays correct with no duplication. The same section
+lifts the `.select` chevron, gives the uptime day blocks an inset hairline so adjacent blocks stay
+separable on a dark ground, and keeps `.sv-site` inverted in both themes.
 
 ## Extending
 
@@ -284,16 +353,18 @@ refresh, toast }`.
 | <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd> | Open or close Stackview Insight — the only entry point besides the round launcher |
 | <kbd>Alt</kbd> <kbd>1</kbd>…<kbd>7</kbd> | Jump to Overview, Alerts, Uptime, Resources, Cost, Access, Reports |
 | <kbd>/</kbd> | Focus the search box on the current screen |
-| <kbd>Esc</kbd> | Close the drawer, the modal, the mobile sidebar or the assistant |
+| <kbd>Esc</kbd> | Close the drawer, the modal, the mobile sidebar, the notification panel, the phone preview or the assistant |
 | <kbd>Enter</kbd> / <kbd>Space</kbd> | Open the focused table row |
 
-Table rows are real focus targets, every icon-only button carries an `aria-label`, filter chips and
-the two sidebar chrome controls report `aria-pressed`, tabs report `aria-selected`, and the focus ring is
-never removed.
+Table rows are real focus targets, every icon-only button carries an `aria-label`, filter chips,
+the two sidebar chrome controls, the device preview pair and the theme switch report `aria-pressed`,
+the bell reports `aria-expanded`, tabs report `aria-selected`, and the focus ring is never removed.
 
 ## Design tokens
 
-All from `assets/app.css`. `assets/stackview.css` only composes them — it defines no new colours.
+All from `assets/app.css`, which also carries the dark palette under `[data-theme="dark"]`.
+`assets/stackview.css` only composes them — the only literal colours it writes are the light-theme
+token values it re-points inside the yellow sidebar when the page is dark.
 
 | Token | Value | Used for |
 |---|---|---|

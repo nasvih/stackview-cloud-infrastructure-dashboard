@@ -46,6 +46,64 @@
 
 .sv-demopill{cursor:pointer;font-family:var(--mono)}
 .sv-demopill:hover{background:var(--amber-fill);color:var(--on-amber);border-color:var(--amber-fill)}
+
+/* == topbar controls: notifications, device preview, theme == */
+.sv-topbtns{display:flex;align-items:center;gap:6px;flex:none}
+.sv-seg{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:var(--r);padding:2px}
+.sv-seg .btn{width:30px;height:30px;padding:0}
+.sv-devbtn[aria-pressed="true"]{background:var(--amber-soft);color:var(--amber-deep)}
+
+.sv-notifwrap{position:relative;flex:none}
+.sv-bell{position:relative;overflow:visible}
+.sv-bell__n{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;padding:0 4px;border-radius:var(--r-pill);
+  background:var(--bad);color:var(--surface);font-size:10px;font-weight:600;line-height:1;
+  display:grid;place-items:center;border:2px solid var(--surface)}
+.sv-notif{position:absolute;top:calc(100% + 8px);right:0;z-index:40;width:min(370px,calc(100vw - 24px));
+  max-height:min(560px,72vh);overflow-y:auto;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-lg);box-shadow:var(--shadow-3)}
+.sv-notif__head{display:flex;align-items:center;gap:8px;padding:12px 12px 10px;border-bottom:1px solid var(--line);
+  position:sticky;top:0;background:var(--surface);z-index:1}
+.sv-notif__ttl{font-weight:700;font-size:14.5px;letter-spacing:-.015em}
+.sv-notif__list{display:block}
+.sv-notif__i{display:flex;align-items:flex-start;gap:4px;border-bottom:1px solid var(--line);padding:2px 6px 2px 0}
+.sv-notif__i:last-child{border-bottom:0}
+.sv-notif__i.is-read{background:var(--surface-2)}
+.sv-notif__i.is-read .sv-notif__t{font-weight:500;color:var(--muted)}
+.sv-notif__go{flex:1;min-width:0;text-align:left;background:none;border:0;cursor:pointer;padding:10px 8px 11px 12px;border-radius:var(--r-sm)}
+.sv-notif__go:hover{background:var(--hover)}
+.sv-notif__t{font-size:13.5px;font-weight:600;line-height:1.4;margin:6px 0 3px}
+.sv-notif__dot{width:7px;height:7px;border-radius:50%;background:var(--bad);flex:none}
+.sv-notif__read{width:30px;height:30px;padding:0;margin-top:9px;flex:none}
+.sv-notif__empty{padding:26px 18px;text-align:center}
+.sv-notif__empty h4{margin-bottom:6px}
+
+/* == phone preview ==
+   The app is loaded again inside an iframe at 390x844 so the real
+   breakpoints apply. Solid yellow surround, ink text on it, dark bezel. */
+.sv-phone{position:fixed;inset:0;z-index:90;background:var(--amber-fill);overflow:auto;
+  display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px}
+.sv-phone__bar{display:flex;align-items:center;gap:16px;width:100%;max-width:430px;color:var(--on-amber)}
+.sv-phone__bar>div{flex:1}
+.sv-phone__name{font-weight:700;font-size:15px;letter-spacing:-.02em}
+.sv-phone__size{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber-darker)}
+.sv-phone__bar .btn{background:var(--surface);border-color:rgba(23,24,26,.2);color:var(--ink)}
+.sv-phone__bezel{width:414px;flex:none;background:var(--night);border:1px solid var(--night-line);
+  border-radius:34px;padding:12px}
+.sv-phone__screen{width:390px;height:844px;border:0;border-radius:24px;background:#FFFFFF;display:block}
+body.is-phoneview{overflow:hidden}
+body.is-phoneview .assist-fab,body.is-phoneview .assist,body.is-phoneview .toasts{display:none!important}
+@media (max-height:960px){
+  .sv-phone__bezel{transform:scale(.84);transform-origin:top center;margin-bottom:-140px}
+}
+@media (max-height:820px){
+  .sv-phone__bezel{transform:scale(.72);margin-bottom:-246px}
+}
+
+/* == about: the worked examples == */
+.sv-about__ex{display:grid;gap:12px;margin-top:10px}
+.sv-about__ex li{border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;background:var(--surface-2)}
+.sv-about__ask{font-size:12.5px;font-weight:600;color:var(--ink)}
+.sv-about__does{margin:5px 0 6px;line-height:1.55}
 .sv-about__b{margin-top:16px}
 .sv-about__b h4{margin-bottom:4px}
 .sv-about__b p{line-height:1.6}
@@ -175,6 +233,35 @@
 .sv-dlitem__t{display:block;font-size:13.5px;font-weight:600}
 .sv-dlitem .small{display:block}
 
+/* == dark mode ==
+   app.css carries the palette; these are stackview's own pieces, plus the
+   one thing that must not follow the palette: the yellow sidebar. Yellow is
+   yellow in both themes, so everything on it stays ink — never the light
+   --ink of the dark palette. Re-pointing the tokens inside that one subtree
+   keeps every shared rule correct without duplicating any of them. */
+:root{color-scheme:light}
+[data-theme="dark"]{color-scheme:dark}
+
+[data-theme="dark"] .side[data-tone="amber"]{
+  --ink:#17181A; --ink-2:#2E3033; --muted:#3A3D42; --faint:#4A4E55;
+  --bg:#FFFFFF; --surface:#FFFFFF; --surface-2:#FAFAF8; --hover:#FEFBEA;
+  --line:#E7E7E4; --line-2:#D8D8D3;
+  --amber-deep:#8A6D00; --amber-darker:#6B5400; --night-2:#222427;
+}
+/* the one inverted control in the sidebar: ink block, light text, in both themes */
+[data-theme="dark"] .sv-site{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+[data-theme="dark"] .sv-site svg{color:var(--bg)}
+[data-theme="dark"] .sv-site:hover{background:var(--ink-2);border-color:var(--ink-2);color:var(--bg)}
+/* the select chevron is drawn in the light muted grey — lift it on dark */
+[data-theme="dark"] .select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23A2A8B0' stroke-width='1.7'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E")}
+/* uptime blocks: the palette already lifts ok/warn/bad, but the strip is the
+   one place colour carries meaning on its own, so the day buttons keep a
+   hairline and every strip stays paired with the legend words. */
+[data-theme="dark"] .sv-day{box-shadow:inset 0 0 0 1px rgba(0,0,0,.28)}
+[data-theme="dark"] .sv-day--btn:hover{outline-color:var(--ink)}
+[data-theme="dark"] .sv-phone__screen{background:var(--bg)}
+[data-theme="dark"] .sv-navscrim{background:rgba(0,0,0,.6)}
+
 /* == responsive == */
 @media (max-width:1080px){
   .sv-wastelist{grid-template-columns:minmax(0,1fr)}
@@ -183,11 +270,26 @@
 @media (max-width:900px){
   /* the sidebar is a drawer down here, so the rail control has nothing to do */
   .sv-railbtn{display:none}
+  /* and a phone frame inside a phone-sized window is nothing to look at:
+     the device control belongs to the desktop layout */
+  .sv-seg{display:none}
 }
 @media (max-width:640px){
+  /* the topbar carries five controls at this width — the title gives way
+     first, then the subtitle, so nothing wraps and nothing overflows */
+  .topbar{gap:8px;padding:0 12px}
+  /* the spacer would take the free room and leave the title truncating at a
+     few characters — down here the title itself is the elastic element */
+  .topbar .spacer{display:none}
+  .sv-topttl{flex:1;min-width:0}
+  .sv-topttl .topbar__title,.sv-topttl .topbar__sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sv-demopill{padding:4px 7px;font-size:9.5px;letter-spacing:.04em}
+  .sv-topbtns{gap:2px}
+  /* app.css already gives the page head its own row for the buttons at this
+     width; here they share that row evenly rather than bunching to the left */
+  .page-head .btnrow>*{flex:1;justify-content:center}
   .sv-kv,.sv-kv--2{grid-template-columns:minmax(0,1fr)}
   .sv-filters{align-items:stretch}
-  .sv-filters .search{max-width:none;width:100%}
   .sv-inline{width:100%;justify-content:space-between}
   .select--sm{flex:1;min-width:0}
   .sv-savings__plan{text-align:left;margin-top:14px}

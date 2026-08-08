@@ -332,9 +332,34 @@ table.data td.right,table.data th.right{text-align:right}
 }
 @media (max-width:640px){
   .g2,.g3,.g4{grid-template-columns:minmax(0,1fr)}
+  /* the title must not share a row with its actions at phone width, or it
+     collapses into a narrow column beside the buttons */
+  .page-head{flex-direction:column;align-items:stretch;gap:12px}
+  .page-head .btnrow,.page-head .row{width:100%}
+  .search{max-width:none;flex-basis:100%}
   /* a card table has no room to keep headers on one line at phone width;
      data grids opt back in with .data--grid and scroll inside their wrapper */
   table.data:not(.data--grid) th{white-space:normal}
   .view{padding:16px}
   .assist{right:0;bottom:0;width:100vw;height:100vh;border-radius:0}
+}
+
+/* == 14. dark mode ==
+   One flat dark palette, same structure: the yellow stays the accent and keeps
+   ink text on it, surfaces go dark, hairlines lift. No inversion filters. */
+[data-theme="dark"]{
+  --bg:#141517;          --surface:#191A1D;      --surface-2:#1F2124;
+  --hover:#26241A;
+  --ink:#F2F2F0;         --ink-2:#D7D8DA;        --muted:#A2A8B0;
+  --faint:#8E959D;
+  --line:#2C2E32;        --line-2:#3A3D42;
+  --amber-soft:#2A2612;  --amber-line:#4A4222;   --amber-deep:#F0D64B;  --amber-darker:#F5E38A;
+  --ok-soft:#132A20;     --ok-line:#1F4534;      --ok:#5FCB97;
+  --warn-soft:#2C2312;   --warn-line:#4A3A1B;    --warn:#E7B85C;
+  --bad-soft:#2E1A19;    --bad-line:#4D2A28;     --bad:#F08379;
+  --info-soft:#152430;   --info-line:#22415A;    --info:#7CB7EE;
+  --night:#0F1012;       --night-2:#191A1D;      --night-line:#2C2E32;
+  --shadow-1:0 1px 2px rgba(0,0,0,.5);
+  --shadow-2:0 6px 20px rgba(0,0,0,.55);
+  --shadow-3:0 16px 44px rgba(0,0,0,.6);
 }

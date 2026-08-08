@@ -97,12 +97,18 @@ const RES = [
 
 const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
+/* the cost centre a team charges to — used when the tag is first applied */
+export const costCentreFor = (team) => (team === 'Facilities IT' ? 'CC-4400'
+  : team === 'Payments' ? 'CC-2100'
+    : team === 'Data' ? 'CC-3300'
+      : team === 'Retail Apps' ? 'CC-2600' : 'CC-1000');
+
 function makeResources(rnd) {
   return RES.map((r, i) => {
     const [name, provider, kind, size, env, region, team, owner, state, cost, cpu, mem, disk, tagged, waste] = r;
     const service = SERVICE_OF[kind] || 'Other';
     const tags = { Environment: env, Service: service, Team: team };
-    if (tagged) { tags.Owner = owner; tags.CostCentre = team === 'Facilities IT' ? 'CC-4400' : team === 'Payments' ? 'CC-2100' : team === 'Data' ? 'CC-3300' : team === 'Retail Apps' ? 'CC-2600' : 'CC-1000'; tags.ManagedBy = provider === 'onprem' ? 'manual' : 'terraform'; }
+    if (tagged) { tags.Owner = owner; tags.CostCentre = costCentreFor(team); tags.ManagedBy = provider === 'onprem' ? 'manual' : 'terraform'; }
     return {
       id: slug(name),
       name, provider, kind, size, env, region, team, owner, state, service,

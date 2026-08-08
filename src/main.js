@@ -5,7 +5,8 @@
 import { h, qs, icon, ICONS, router, toast, confirmDialog, modal } from '../lib/ui.js';
 import { initPWA } from '../lib/pwa.js';
 import { store, ORG, openAlerts } from './data.js';
-import { buildAssistant } from './agent.js';
+import { buildAssistant, ACTION_HELP } from './agent.js';
+import { notificationsControl } from './notify.js';
 
 import overview from './views/overview.js';
 import resources from './views/resources.js';
@@ -34,12 +35,18 @@ const app = qs('#app');
    so a first visit with nothing stored renders data-tone="amber". */
 const PREFS_KEY = 'stackview.prefs.v1';
 const RAIL_MIN = 900;   /* below this the sidebar is a drawer, so no rail */
-const DEFAULTS = { rail: false, tone: 'amber' };
+/* theme null means "follow the operating system", which is what a first visit
+   gets; picking light or dark pins it. */
+const DEFAULTS = { rail: false, tone: 'amber', theme: null };
 const prefs = (() => {
   try { return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')); }
   catch (_) { return Object.assign({}, DEFAULTS); }
 })();
 const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (_) {} };
+
+/* The phone preview loads this same page inside an iframe. The framed copy
+   drops the device control, so there is no frame inside the frame. */
+const FRAMED = new URLSearchParams(location.search).get('frame') === 'phone';
 
 /* Small glyphs the shared icon set does not carry. The two chrome controls on
    the brand row show a glyph and nothing else, so theirs have to say what they
@@ -51,6 +58,11 @@ const GLYPH = {
   tone: '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.6"/><path d="M10 3.4a6.6 6.6 0 0 1 0 13.2z" fill="currentColor" stroke="none"/></svg>',
   external: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11.2 4.2h4.6v4.6"/><path d="M15.8 4.2l-6.4 6.4"/><path d="M14.4 11.6v3.6a1.6 1.6 0 0 1-1.6 1.6H4.8a1.6 1.6 0 0 1-1.6-1.6V7.2a1.6 1.6 0 0 1 1.6-1.6h3.6"/></svg>',
   code: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.4 5.8L3.2 10l4.2 4.2"/><path d="M12.6 5.8L16.8 10l-4.2 4.2"/><path d="M11.1 4.1L8.9 15.9"/></svg>',
+  /* topbar: a phone, a monitor, and the two theme glyphs */
+  phone: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="6" y="2.6" width="8" height="14.8" rx="2"/><path d="M8.8 15.2h2.4"/></svg>',
+  desktop: '<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.6" y="4" width="14.8" height="9.6" rx="2"/><path d="M7.4 17h5.2M10 13.6V17"/></svg>',
+  moon: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.2 12.4A6.8 6.8 0 0 1 7.6 3.8a6.8 6.8 0 1 0 8.6 8.6z"/></svg>',
+  sun: '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3.4"/><path d="M10 2.4v1.8M10 15.8v1.8M17.6 10h-1.8M4.2 10H2.4M15.4 4.6l-1.3 1.3M5.9 14.1l-1.3 1.3M15.4 15.4l-1.3-1.3M5.9 5.9L4.6 4.6"/></svg>',
 };
 
 /* the repository this demo is published from */
@@ -124,6 +136,14 @@ export function aboutModal() {
         ? h('ul', { class: 'sv-about__list' },
             ...b.list.map(([lead, rest]) => h('li', {}, h('strong', {}, lead), ` — ${rest}`)))
         : null)),
+    /* the same worked examples the assistant gives for "what can you do?" */
+    h('div', { class: 'sv-about__b' },
+      h('h4', {}, 'What you can ask the assistant to do'),
+      h('p', { class: 'small muted' }, 'Stackview Insight does not only report. Type one of these and it names exactly what it is about to touch, then applies it when you press the button — never before.'),
+      h('ul', { class: 'sv-about__ex' }, ...ACTION_HELP.map((a) => h('li', {},
+        h('div', { class: 'sv-about__ask mono' }, a.ask),
+        h('div', { class: 'sv-about__does small muted' }, `It ${a.does}`),
+        h('div', { class: 'label' }, `Lands on ${a.screen}`))))),
     h('div', { class: 'sv-about__b sv-about__src' },
       h('h4', {}, 'The source'),
       h('p', { class: 'small muted' }, SOURCE_NOTE),
@@ -175,14 +195,6 @@ const side = h('aside', { class: 'side', id: 'sidebar' },
       h('span', { class: 'label' }, 'Tenant'),
       h('div', { class: 'sv-org__name' }, ORG.name),
       h('div', { class: 'small faint' }, ORG.units.join(' · '))),
-    h('button', {
-      class: 'btn btn--ghost btn--block sv-reset',
-      type: 'button',
-      title: 'About this demo',
-      'aria-label': 'About this demo',
-      onclick: () => aboutModal(),
-      html: `${icon('eye')}<span>About this demo</span>`,
-    }),
     h('div', { class: 'side__pair' },
       h('a', {
         class: 'btn btn--block btn--sm sv-site',
@@ -198,13 +210,42 @@ const side = h('aside', { class: 'side', id: 'sidebar' },
         href: SOURCE_URL,
         target: '_blank',
         rel: 'noopener noreferrer',
-        'aria-label': 'Source on GitHub — opens in a new tab',
-        title: 'Source on GitHub — opens in a new tab',
-        html: `${GLYPH.code}<span>Source on GitHub</span>`,
+        'aria-label': 'GitHub — opens the source repository in a new tab',
+        title: 'GitHub — opens the source repository in a new tab',
+        html: `${GLYPH.code}<span>GitHub</span>`,
       })),
     installRow));
 
 const scrim = h('div', { class: 'sv-navscrim', hidden: true, onclick: () => setSidebar(false) });
+
+/* ---------- topbar controls ----------
+   Three icon-only controls sit left of the About button: notifications,
+   device preview and the theme switch. Each is a real button with a title
+   and an aria-label, reachable by keyboard in source order. */
+
+const notifs = notificationsControl({
+  store,
+  navigate: (to) => { location.hash = `#/${to}`; },
+});
+
+const deviceBtn = (mode, label, glyph) => h('button', {
+  class: 'btn btn--ghost btn--icon sv-devbtn',
+  type: 'button',
+  dataset: { device: mode },
+  'aria-label': label,
+  title: label,
+  onclick: () => setDevice(mode),
+  html: glyph,
+});
+const phoneBtn = deviceBtn('phone', 'Preview at phone size', GLYPH.phone);
+const desktopBtn = deviceBtn('desktop', 'Back to desktop size', GLYPH.desktop);
+const deviceGroup = h('div', { class: 'sv-seg', role: 'group', 'aria-label': 'Device preview' }, desktopBtn, phoneBtn);
+
+const themeBtn = h('button', {
+  class: 'btn btn--ghost btn--icon',
+  type: 'button',
+  onclick: () => { prefs.theme = isDark() ? 'light' : 'dark'; savePrefs(); applyTheme(); },
+});
 
 const topbar = h('header', { class: 'topbar' },
   h('button', {
@@ -218,13 +259,17 @@ const topbar = h('header', { class: 'topbar' },
     h('div', { class: 'topbar__title', id: 'ttl' }, 'Overview'),
     h('div', { class: 'topbar__sub', id: 'sub' }, 'Estate at a glance')),
   h('div', { class: 'spacer' }),
+  h('div', { class: 'sv-topbtns' },
+    notifs.el,
+    FRAMED ? null : deviceGroup,
+    themeBtn),
   h('button', {
     class: 'pill pill--amber sv-demopill',
     type: 'button',
     'aria-label': 'About this demo',
     title: 'Every figure, resource, account and alert here is invented sample data and nothing leaves your browser. Open for the detail.',
     onclick: () => aboutModal(),
-  }, 'Demo'));
+  }, 'About this demo'));
 
 const viewEl = h('main', { class: 'view view--pad', id: 'view', tabindex: '-1' });
 
@@ -264,6 +309,71 @@ window.addEventListener('resize', () => {
   const railed = prefs.rail && railable();
   if (railed !== shell.classList.contains('is-rail')) applyChrome();
 });
+
+/* ---------- theme ----------
+   data-theme on <html>. With nothing stored the operating system decides and
+   keeps deciding; the moment the reader presses the control it is pinned and
+   persisted. index.html sets the attribute before first paint so a dark
+   browser never flashes white. */
+const systemDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+const isDark = () => (prefs.theme ? prefs.theme === 'dark' : !!(systemDark && systemDark.matches));
+
+function applyTheme() {
+  const dark = isDark();
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  const meta = qs('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', dark ? '#141517' : '#EAC81C');
+  const label = dark ? 'Switch to light mode' : 'Switch to dark mode';
+  themeBtn.setAttribute('aria-label', label);
+  themeBtn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+  themeBtn.title = label;
+  themeBtn.innerHTML = dark ? GLYPH.sun : GLYPH.moon;
+}
+if (systemDark && systemDark.addEventListener) {
+  systemDark.addEventListener('change', () => { if (!prefs.theme) applyTheme(); });
+}
+
+/* ---------- device preview ----------
+   Phone mode loads the app again inside a 390x844 iframe, so the real
+   breakpoints apply rather than a scaled screenshot of the desktop layout. */
+let phoneWrap = null;
+
+function setDevice(mode) {
+  if (mode === 'phone') openPhone(); else closePhone();
+}
+
+function openPhone() {
+  if (phoneWrap) return;
+  notifs.close();
+  const frame = h('iframe', {
+    class: 'sv-phone__screen',
+    title: 'Stackview running in a 390 by 844 phone viewport',
+    src: `./index.html?frame=phone${location.hash || '#/overview'}`,
+  });
+  const back = h('button', {
+    class: 'btn btn--sm', type: 'button', onclick: () => closePhone(),
+    html: `${GLYPH.desktop}<span>Back to desktop</span>`,
+  });
+  phoneWrap = h('div', { class: 'sv-phone' },
+    h('div', { class: 'sv-phone__bar' },
+      h('div', { style: 'min-width:0' },
+        h('div', { class: 'sv-phone__name' }, 'stackview'),
+        h('div', { class: 'sv-phone__size mono' }, 'phone preview · 390 × 844')),
+      back),
+    h('div', { class: 'sv-phone__bezel' }, frame));
+  document.body.appendChild(phoneWrap);
+  document.body.classList.add('is-phoneview');
+  phoneBtn.setAttribute('aria-pressed', 'true');
+  desktopBtn.setAttribute('aria-pressed', 'false');
+  back.focus();
+}
+
+function closePhone() {
+  if (phoneWrap) { phoneWrap.remove(); phoneWrap = null; }
+  document.body.classList.remove('is-phoneview');
+  phoneBtn.setAttribute('aria-pressed', 'false');
+  desktopBtn.setAttribute('aria-pressed', 'true');
+}
 
 /* ---------- nav ---------- */
 function renderNav(active) {
@@ -315,6 +425,8 @@ export function closeDrawer() { if (openDrawer) openDrawer(); }
 
 /* ---------- routing ---------- */
 let current = 'overview';
+let lastParts = [];
+let lastQuery = new URLSearchParams();
 const nav = router(ROUTES, (name, parts, query) => {
   current = name;
   render(parts, query);
@@ -322,7 +434,13 @@ const nav = router(ROUTES, (name, parts, query) => {
 
 export function navigate(path) { location.hash = `#/${path}`; }
 
+/* redraw whatever screen is up — the assistant calls this after it changes
+   something so the alert queue, cleanup plan or access list reflects it
+   without the reader touching anything */
+export function rerender() { render(lastParts, lastQuery); }
+
 function render(parts = [], query = new URLSearchParams()) {
+  lastParts = parts; lastQuery = query;
   const route = ROUTES[current];
   qs('#ttl').textContent = route.title;
   qs('#sub').textContent = route.sub;
@@ -362,7 +480,7 @@ document.addEventListener('keydown', (e) => {
     const target = ORDER[Number(e.key) - 1];
     if (target) { e.preventDefault(); navigate(target); }
   }
-  if (e.key === 'Escape') { closeDrawer(); setSidebar(false); }
+  if (e.key === 'Escape') { closeDrawer(); setSidebar(false); closePhone(); }
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement && document.activeElement.tagName);
   if (e.key === '/' && !typing) {
     const box = qs('#view .search .input');
@@ -370,8 +488,10 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-/* ---------- assistant ---------- */
-window.stackviewAssistant = buildAssistant(store).mount(document.body);
+/* ---------- assistant ----------
+   It is handed a redraw so the changes it makes land on the screen behind
+   the panel the moment they are applied. */
+window.stackviewAssistant = buildAssistant(store, { refresh: rerender }).mount(document.body);
 
 /* ---------- installable ----------
    initPWA appends, so the control is moved to the head of the row it shares
@@ -388,4 +508,6 @@ if (installBtn) installRow.insertBefore(installBtn, installRow.firstChild);
 /* ---------- go ---------- */
 nav.go();
 applyChrome();
+applyTheme();
+closePhone();   /* sets the device control to its resting state */
 export { ICONS };

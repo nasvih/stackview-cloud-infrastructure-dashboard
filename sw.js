@@ -3,7 +3,7 @@
    network), and a single versioned cache so an update wipes the old one.
    Bump CACHE_VERSION whenever the file list or any cached asset changes. */
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE = `${self.registration.scope}::${CACHE_VERSION}`;
 
 /* stackview's own shell — every file the app needs to draw a screen with no
@@ -20,6 +20,7 @@ const SHELL = [
   './src/main.js',
   './src/data.js',
   './src/agent.js',
+  './src/notify.js',
   './src/views/overview.js',
   './src/views/alerts.js',
   './src/views/uptime.js',

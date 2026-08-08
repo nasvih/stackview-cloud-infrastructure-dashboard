@@ -5,8 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>stackview — infrastructure and IT visibility</title>
 <meta name="description" content="stackview is a demo application that shows one picture of everything a business runs and pays for: cloud and on-prem inventory, cost and waste, access, alerts and uptime.">
-<meta name="color-scheme" content="light">
+<meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#EAC81C">
+<script>
+/* Theme before first paint: a stored choice wins, otherwise the operating
+   system decides. Without this a dark browser flashes white while the
+   module loads. No network, no dependencies. */
+(function () {
+  try {
+    var p = JSON.parse(localStorage.getItem('stackview.prefs.v1') || '{}');
+    var dark = p.theme ? p.theme === 'dark'
+      : window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    if (dark) document.querySelector('meta[name="theme-color"]').setAttribute('content', '#141517');
+  } catch (e) {}
+})();
+</script>
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
