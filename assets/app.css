@@ -148,10 +148,10 @@ h1{font-size:22px} h2{font-size:18px} h3{font-size:15.5px} h4{font-size:14px}
 .meter__fill{height:100%;background:var(--amber-fill)}
 .meter__fill--ok{background:var(--ok)} .meter__fill--bad{background:var(--bad)} .meter__fill--info{background:var(--info)}
 .bars{display:flex;align-items:flex-end;gap:6px;height:120px}
-.bars__col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%}
+.bars__col{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%}
 .bars__bar{width:100%;background:var(--amber-fill);border-radius:var(--r-xs) var(--r-xs) 0 0;min-height:2px}
 .bars__bar--muted{background:var(--line-2)}
-.bars__x{font-family:var(--mono);font-size:10px;color:var(--faint)}
+.bars__x{font-family:var(--mono);font-size:10px;color:var(--faint);max-width:100%;overflow:hidden;text-overflow:ellipsis}
 
 /* == 8. tables == */
 .tablewrap{border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;background:var(--surface)}
@@ -310,6 +310,9 @@ table.data td.right,table.data th.right{text-align:right}
 }
 @media (max-width:640px){
   .g2,.g3,.g4{grid-template-columns:minmax(0,1fr)}
+  /* a card table has no room to keep headers on one line at phone width;
+     data grids opt back in with .data--grid and scroll inside their wrapper */
+  table.data:not(.data--grid) th{white-space:normal}
   .view{padding:16px}
   .assist{right:0;bottom:0;width:100vw;height:100vh;border-radius:0}
 }
