@@ -6,8 +6,15 @@
 /* == shell extras == */
 .sv-org{margin-bottom:10px}
 .sv-org__name{font-weight:600;font-size:13.5px;margin-top:4px}
+.side__toggles{margin-bottom:8px}
 .sv-reset{justify-content:flex-start;color:var(--muted);font-weight:500}
 .sv-reset:hover{color:var(--ink)}
+.shell.is-rail .sv-reset{justify-content:center}
+/* the amber sidebar keeps ink text everywhere, including our own bits */
+.side[data-tone="amber"] .sv-org__name,
+.side[data-tone="amber"] .sv-reset{color:var(--ink)}
+.side[data-tone="amber"] .sv-org .label,
+.side[data-tone="amber"] .sv-org .faint{color:var(--amber-darker)}
 .sv-topttl{min-width:0}
 .sv-navscrim{position:fixed;inset:0;background:rgba(23,24,26,.34);z-index:60}
 .sv-navscrim--drawer{z-index:66}
@@ -146,7 +153,8 @@
   .sv-kv{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media (max-width:900px){
-  .sv-hidesm{display:none}
+  /* the sidebar is a drawer down here, so the rail control has nothing to do */
+  .sv-railbtn{display:none}
 }
 @media (max-width:640px){
   .sv-kv,.sv-kv--2{grid-template-columns:minmax(0,1fr)}

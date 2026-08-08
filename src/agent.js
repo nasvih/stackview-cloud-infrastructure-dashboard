@@ -62,7 +62,7 @@ export function buildAssistant(store) {
         return {
           text: `Nothing in production can go without a change window, so this list is non-production and detached only. Together it is **${money2(sum)} a month**.\n\nSafe with a schedule, not a delete — they are still someone's environment:\n\n${safe.map((r) => `- \`${r.name}\` — ${r.env}, CPU ${pct(r.util.cpu)}, ${money2(r.cost)}/mo, owner ${r.owner}`).join('\n')}\n\nSafe to delete after a snapshot — nothing is attached to them:\n\n${detached.map((r) => `- \`${r.name}\` — ${r.state} ${r.kind}, ${money2(r.cost)}/mo`).join('\n')}`,
           meta: `checked ${s.resources.length} resources, ${safe.length + detached.length} candidates`,
-          suggestions: ['What is idle right now?', 'How much do we spend on dev?', 'Add to the cleanup plan'],
+          suggestions: ['What is idle right now?', 'How much do we spend on dev?', 'What is in the cleanup plan?'],
         };
       },
     },
@@ -70,7 +70,7 @@ export function buildAssistant(store) {
     /* 3 — biggest cost jump */
     {
       id: 'cost-jump',
-      match: [/jump|spike|increase|increased|went up|why.*(up|higher)|biggest mover|month on month|month over month|rose/i],
+      match: [/jump|spike|increase|increased|went up|why.*(up|higher)|biggest mover|month on month|month over month|rose/i, 'cost', 'bill'],
       trace: 'compared this month against last month by service group',
       answer: (q, s) => {
         const cur = s.months[s.months.length - 1];
@@ -277,7 +277,12 @@ export function buildAssistant(store) {
       answer: (q, s) => {
         const planned = s.resources.filter((r) => s.cleanup[r.id] === 'planned');
         const dismissed = s.resources.filter((r) => s.cleanup[r.id] === 'dismissed');
-        if (!planned.length) return { text: `The cleanup plan is empty. There are ${wasteItems(s).length} open findings worth ${money2(totalWaste(s))} a month — open Cost, go to the idle and waste tab and add the ones you want. ${dismissed.length ? `${dismissed.length} finding(s) are dismissed.` : ''}` };
+        if (!planned.length) {
+          return {
+            text: `The cleanup plan is empty. There are ${wasteItems(s).length} open findings worth ${money2(totalWaste(s))} a month — open Cost, go to the idle and waste tab and add the ones you want. ${dismissed.length ? `${dismissed.length} finding(s) are dismissed.` : ''}`,
+            suggestions: ['What is idle right now?', 'What is safe to switch off?', 'Which resources are untagged?'],
+          };
+        }
         const sum = planned.reduce((a, r) => a + r.waste.saving, 0);
         return {
           text: `${planned.length} resource${planned.length > 1 ? 's are' : ' is'} in the cleanup plan, worth **${money2(sum)} a month** — ${money2(sum * 12)} over a year, ${sar(sum)} a month for the Jeddah books.\n\n${planned.map((r) => `- \`${r.name}\` — ${r.waste.action}. Owner ${r.owner}.`).join('\n')}${dismissed.length ? `\n\n${dismissed.length} other finding(s) were dismissed.` : ''}`,
@@ -287,7 +292,55 @@ export function buildAssistant(store) {
       },
     },
 
-    /* 15 — most expensive things */
+    /* 15 — the access review as a whole */
+    {
+      id: 'access-review',
+      match: [/access review|review the access|who has access|permission|entitlement|joiner|mover|privileg|elevated/i, 'access review', 'who has access', 'access'],
+      trace: 'rolled up the access review across all three directories',
+      answer: (q, s) => {
+        const elevated = s.users.filter((u) => u.role === 'Admin' || u.role === 'Power user');
+        const noMfa = adminsNoMfa(s);
+        const stale = staleUsers(s);
+        const oldKeys = s.users.filter((u) => u.keyAgeDays > 365);
+        const offb = s.users.filter((u) => u.offboarding);
+        const dirs = groupSum(s.users.map((u) => ({ directory: u.directory, cost: 1 })), 'directory');
+        const findings = noMfa.length + stale.length + oldKeys.length;
+        return {
+          text: `${s.users.length} accounts across ${dirs.length} directories — ${dirs.map((d) => `${d.label} ${d.value}`).join(', ')}. ${elevated.length} hold an elevated role.\n\n**${findings} thing${findings === 1 ? '' : 's'} to clear before this review closes:**\n\n- ${noMfa.length} elevated account(s) with no second factor${noMfa.length ? `: ${noMfa.map((u) => u.name).join(', ')}` : ''}\n- ${stale.length} account(s) with no sign in for 60 days or more${stale.length ? `: ${stale.map((u) => u.name).join(', ')}` : ''}\n- ${oldKeys.length} access key(s) past a year old${oldKeys.length ? `: ${oldKeys.map((u) => `${u.name} at ${num(u.keyAgeDays)} days`).join(', ')}` : ''}\n\nMFA coverage is ${pct((s.users.filter((u) => u.mfa).length / s.users.length) * 100)}. ${offb.length ? `${offb.length} offboarding checklist(s) are open: ${offb.map((u) => `${u.name} at ${u.offboarding.done.filter(Boolean).length} of 7`).join(', ')}.` : 'No offboarding is in progress.'}`,
+          table: {
+            head: ['Check', 'Count', 'State'],
+            rows: [
+              ['Elevated without MFA', String(noMfa.length), noMfa.length ? 'needs action' : 'clear'],
+              ['Stale accounts', String(stale.length), stale.length ? 'needs action' : 'clear'],
+              ['Keys past a year', String(oldKeys.length), oldKeys.length ? 'needs action' : 'clear'],
+              ['Offboarding open', String(offb.length), offb.length ? 'in progress' : 'clear'],
+            ],
+          },
+          suggestions: ['Which admins have no MFA?', 'Which accounts are stale?', 'Who owns the most resources?'],
+        };
+      },
+    },
+
+    /* 16 — ownership */
+    {
+      id: 'owners',
+      match: [/who owns|owns the most|ownership|owner of|unowned|no owner|owns what/i, 'who owns', 'owns the most', 'ownership'],
+      trace: 'grouped the inventory by owner and checked the Owner tag',
+      answer: (q, s) => {
+        const owners = groupSum(s.resources, 'owner');
+        const counts = owners.map((o) => ({ ...o, n: s.resources.filter((r) => r.owner === o.label).length }));
+        const byCount = [...counts].sort((a, b) => b.n - a.n);
+        const noTag = s.resources.filter((r) => !r.tags.Owner);
+        const gone = s.users.filter((u) => (u.status === 'stale' || u.status === 'disabled') && s.resources.some((r) => r.owner === u.name));
+        return {
+          text: `**${byCount[0].label}** owns the most — ${byCount[0].n} resources worth ${money2(byCount[0].value)} a month. By spend the biggest owner is **${owners[0].label}** at ${money2(owners[0].value)}.\n\n${noTag.length ? `${noTag.length} resources carry no Owner tag at all, worth ${money2(noTag.reduce((a, r) => a + r.cost, 0))} a month: ${noTag.map((r) => `\`${r.name}\``).join(', ')}.` : 'Every resource carries an Owner tag.'}${gone.length ? `\n\nWatch these: ${gone.map((u) => `${u.name} is ${u.status} but still owns ${s.resources.filter((r) => r.owner === u.name).length} resources`).join('; ')}.` : ''}`,
+          table: { head: ['Owner', 'Resources', 'Monthly'], rows: byCount.map((o) => [o.label, String(o.n), money2(o.value)]) },
+          suggestions: ['Which resources are untagged?', 'Which accounts are stale?', 'Which team spends the most?'],
+        };
+      },
+    },
+
+    /* 17 — most expensive things */
     {
       id: 'top-cost',
       match: [/most expensive|top.*(cost|spend|resource)|biggest resource|what costs the most|priciest/i, 'most expensive', 'costs the most', 'priciest', 'biggest line'],

@@ -27,6 +27,34 @@ const ROUTES = {
 /* ---------- shell ---------- */
 const app = qs('#app');
 
+/* Sidebar preferences — rail collapse and brand colour. Kept out of the demo
+   store so that "Reset demo data" does not throw away a display choice. */
+const PREFS_KEY = 'stackview.prefs.v1';
+const RAIL_MIN = 900;   /* below this the sidebar is a drawer, so no rail */
+const prefs = (() => {
+  try { return Object.assign({ rail: false, tone: 'default' }, JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')); }
+  catch (_) { return { rail: false, tone: 'default' }; }
+})();
+const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (_) {} };
+
+/* two small glyphs the shared icon set does not carry */
+const GLYPH = {
+  collapse: '<svg viewBox="0 0 20 20"><path d="M11.6 5.6L7.2 10l4.4 4.4"/><path d="M15.4 3.6v12.8"/></svg>',
+  expand: '<svg viewBox="0 0 20 20"><path d="M8.4 5.6L12.8 10l-4.4 4.4"/><path d="M4.6 3.6v12.8"/></svg>',
+  tone: '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.6"/><path d="M10 3.4a6.6 6.6 0 0 1 0 13.2z" fill="currentColor" stroke="none"/></svg>',
+};
+
+const railBtn = h('button', {
+  class: 'btn btn--sm sv-railbtn',
+  type: 'button',
+  onclick: () => { prefs.rail = !prefs.rail; savePrefs(); applyChrome(); },
+});
+const toneBtn = h('button', {
+  class: 'btn btn--sm',
+  type: 'button',
+  onclick: () => { prefs.tone = prefs.tone === 'amber' ? 'default' : 'amber'; savePrefs(); applyChrome(); },
+});
+
 /* ---------- about this demo ---------- */
 const ABOUT = [
   ['You can actually use it', 'Acknowledge and mute alerts, stop resources and reassign owners, work the idle and waste list, run the access review and the offboarding checklist, generate a monthly review. Nothing on these screens is read only.'],
@@ -51,10 +79,11 @@ const side = h('aside', { class: 'side', id: 'sidebar' },
       h('div', { class: 'side__tag' }, 'IT visibility'))),
   h('nav', { class: 'side__nav', id: 'nav', 'aria-label': 'Primary' }),
   h('div', { class: 'side__foot' },
-    h('div', { class: 'sv-org' },
+    h('div', { class: 'sv-org side__sub' },
       h('span', { class: 'label' }, 'Tenant'),
       h('div', { class: 'sv-org__name' }, ORG.name),
       h('div', { class: 'small faint' }, ORG.units.join(' · '))),
+    h('div', { class: 'side__toggles' }, railBtn, toneBtn),
     h('button', {
       class: 'btn btn--ghost btn--block sv-reset',
       type: 'button',
@@ -96,23 +125,47 @@ const topbar = h('header', { class: 'topbar' },
     'aria-label': 'About this demo',
     title: 'Every figure, resource, account and alert here is invented sample data and nothing leaves your browser. Open for the detail.',
     onclick: () => aboutModal(),
-  }, 'Demo'),
-  h('button', {
-    class: 'btn btn--sm sv-hidesm',
-    type: 'button',
-    onclick: () => window.stackviewAssistant && window.stackviewAssistant.toggle(true),
-    html: `${icon('spark')}<span>Ask Insight</span>`,
-  }));
+  }, 'Demo'));
 
 const viewEl = h('main', { class: 'view view--pad', id: 'view', tabindex: '-1' });
 
-app.appendChild(h('div', { class: 'shell' }, side, h('div', { class: 'main' }, topbar, viewEl)));
+const shell = h('div', { class: 'shell' }, side, h('div', { class: 'main' }, topbar, viewEl));
+app.appendChild(shell);
 app.appendChild(scrim);
 
 function setSidebar(open) {
   side.classList.toggle('is-open', open);
   scrim.hidden = !open;
 }
+
+/* ---------- sidebar chrome: rail + colour ---------- */
+const railable = () => window.innerWidth > RAIL_MIN;
+
+function applyChrome() {
+  /* the rail only exists on wide screens; under 900px the sidebar is a drawer
+     and must keep its full width and its labels */
+  const railed = prefs.rail && railable();
+  shell.classList.toggle('is-rail', railed);
+  side.setAttribute('data-tone', prefs.tone);
+
+  railBtn.setAttribute('aria-pressed', prefs.rail ? 'true' : 'false');
+  railBtn.setAttribute('aria-label', prefs.rail ? 'Expand the sidebar' : 'Collapse the sidebar to icons');
+  railBtn.title = prefs.rail ? 'Expand the sidebar' : 'Collapse the sidebar to icons';
+  railBtn.innerHTML = `${prefs.rail ? GLYPH.expand : GLYPH.collapse}<span>${prefs.rail ? 'Expand' : 'Collapse'}</span>`;
+
+  const amber = prefs.tone === 'amber';
+  toneBtn.setAttribute('aria-pressed', amber ? 'true' : 'false');
+  toneBtn.setAttribute('aria-label', amber ? 'Use the white sidebar' : 'Use the yellow sidebar');
+  toneBtn.title = amber ? 'Use the white sidebar' : 'Use the yellow sidebar';
+  toneBtn.innerHTML = `${GLYPH.tone}<span>${amber ? 'White' : 'Yellow'}</span>`;
+
+  renderNav(current);
+}
+
+window.addEventListener('resize', () => {
+  const railed = prefs.rail && railable();
+  if (railed !== shell.classList.contains('is-rail')) applyChrome();
+});
 
 /* ---------- nav ---------- */
 function renderNav(active) {
@@ -124,10 +177,15 @@ function renderNav(active) {
     const box = h('div', { class: 'navgroup' }, h('div', { class: 'navgroup__label' }, g));
     for (const [key, r] of Object.entries(ROUTES)) {
       if (r.group !== g) continue;
+      const railed = shell.classList.contains('is-rail');
+      const label = key === 'alerts' && openCount ? `${r.title} (${openCount} open)` : r.title;
       const link = h('a', {
         class: `navlink${key === active ? ' is-active' : ''}`,
         href: `#/${key}`,
         'aria-current': key === active ? 'page' : null,
+        /* in rail mode the text is hidden, so the name has to come from here */
+        'aria-label': railed ? label : null,
+        title: railed ? label : null,
         onclick: () => setSidebar(false),
         html: `${icon(r.icon)}<span>${r.title}</span>`,
       });
@@ -219,4 +277,5 @@ window.stackviewAssistant = buildAssistant(store).mount(document.body);
 
 /* ---------- go ---------- */
 nav.go();
+applyChrome();
 export { ICONS };

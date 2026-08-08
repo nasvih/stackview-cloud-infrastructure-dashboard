@@ -47,6 +47,20 @@ first route.
 seeds if there is nothing there. `store.update(fn)` mutates the state, writes it back and notifies
 subscribers. `store.reset()` re-seeds. That is the whole state layer.
 
+**Sidebar chrome.** The rail collapse and the sidebar colour are display preferences, not demo
+data, so they live in their own `stackview.prefs.v1` key and survive **Reset demo data**.
+`applyChrome()` in `src/main.js` is the single place that writes them to the DOM: it toggles
+`is-rail` on `.shell`, sets `data-tone` on `.side`, rewrites both buttons' glyph, label,
+`title` and `aria-pressed`, then re-runs `renderNav()` so the nav links pick up or drop their
+`title` / `aria-label` (in rail mode the visible text is hidden, so the name has to come from
+there). The rail class is only applied above 900px — below that the sidebar is a fixed drawer and
+a 64px grid column would break the layout — and a `resize` listener re-applies it across that
+boundary. The rail button hides itself under 900px in `assets/stackview.css`.
+
+**One assistant entry point.** `Assistant.mount()` installs the round launcher and the
+⌘K / Ctrl+K binding. Nothing else in the app opens the panel; there is no topbar or sidebar
+shortcut to it, by design.
+
 ## Data model
 
 `src/data.js` builds the estate from a fixed blueprint plus a seeded pseudo-random generator
@@ -110,9 +124,9 @@ produces the Kubernetes step change this month and the steady on-prem line. The 
 
 | File | Responsibility |
 |---|---|
-| `src/main.js` | Shell markup, sidebar nav with the open-alert count, topbar, route table, drawer helper, keyboard shortcuts, "About this demo" modal, reset action, assistant mount |
+| `src/main.js` | Shell markup, sidebar nav with the open-alert count, rail and colour toggles, topbar, route table, drawer helper, keyboard shortcuts, "About this demo" modal, reset action, assistant mount |
 | `src/data.js` | Resource blueprint, alerts, users, uptime strips, cost history, seed, store, selectors |
-| `src/agent.js` | 15 intents and 4 fallbacks for Stackview Insight, all reading `store.state` |
+| `src/agent.js` | 17 intents and 4 fallbacks for Stackview Insight, all reading `store.state` |
 | `src/views/overview.js` | Stat row, spend bars, environment meters, provider tiles, waste table, alert list, access hygiene, activity timeline |
 | `src/views/resources.js` | Filter bar, sortable inventory table, CSV export, detail drawer with utilisation meters and the resource actions |
 | `src/views/cost.js` | Four tabs — service, environment, team, idle and waste — plus the cleanup plan and its export |
@@ -150,6 +164,23 @@ moment earlier — acknowledge an alert and the queue count in the reply drops.
 2. Read the numbers through the selectors in `src/data.js` rather than recomputing them.
 3. Add a phrasing to `SUGGESTIONS` if it deserves a chip.
 
+**Every chip must be answerable.** Scoring is `regex = 2, string = 1`, and ties go to the intent
+declared first, so a new broad regex can quietly steal a question from a narrower intent. After
+any change to `match` lists or to a `suggestions` array, ask each chip back to the assistant and
+check the reply is not a fallback — the full chip set is reachable from the running app:
+
+```js
+const agent = await import('/src/agent.js');
+const data  = await import('/src/data.js');
+const bot   = agent.buildAssistant(data.store);
+const chips = new Set(bot.cfg.suggestions);
+for (const it of bot.cfg.intents) (it.answer('probe', data.store.state).suggestions || []).forEach(c => chips.add(c));
+[...chips];   // ask each one, assert the reply is not one of bot.cfg.fallbacks
+```
+
+The same rule applies to the fallback strings: if a fallback tells the user to ask about X, then
+X has to route to a real intent.
+
 ## Extending
 
 **A new screen.** Create `src/views/thing.js` exporting `render(ctx)` and a default export of
@@ -171,14 +202,15 @@ refresh, toast }`.
 
 | Keys | Action |
 |---|---|
-| <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd> | Open or close Stackview Insight |
+| <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd> | Open or close Stackview Insight — the only entry point besides the round launcher |
 | <kbd>Alt</kbd> <kbd>1</kbd>…<kbd>7</kbd> | Jump to Overview, Alerts, Uptime, Resources, Cost, Access, Reports |
 | <kbd>/</kbd> | Focus the search box on the current screen |
 | <kbd>Esc</kbd> | Close the drawer, the modal, the mobile sidebar or the assistant |
 | <kbd>Enter</kbd> / <kbd>Space</kbd> | Open the focused table row |
 
-Table rows are real focus targets, every icon-only button carries an `aria-label`, filter chips
-report `aria-pressed`, tabs report `aria-selected`, and the focus ring is never removed.
+Table rows are real focus targets, every icon-only button carries an `aria-label`, filter chips and
+the two sidebar toggles report `aria-pressed`, tabs report `aria-selected`, and the focus ring is
+never removed.
 
 ## Design tokens
 
@@ -197,6 +229,9 @@ All from `assets/app.css`. `assets/stackview.css` only composes them — it defi
 | `--ok` / `--warn` / `--bad` / `--info` | `#1E7A4B` `#9A6400` `#B3261E` `#1F5C9E` | status, each always paired with a word |
 | `--r-lg` / `--r` / `--r-sm` / `--r-xs` | 12 / 8 / 6 / 4 px | radii |
 | `--sans` / `--mono` | Inter / JetBrains Mono | UI text / labels, numbers, identifiers |
+
+The yellow sidebar (`.side[data-tone="amber"]`) is `--amber-fill` with `--ink` text — 10.8:1 — and
+`--amber-darker` for the quiet lines. White text on yellow never appears.
 
 Rules the stylesheet keeps: solid fills only — no gradients, no blur, no glow shadows, no emoji as
 icons. Icons are inline stroke SVG using `currentColor`. Status is never signalled by colour alone;

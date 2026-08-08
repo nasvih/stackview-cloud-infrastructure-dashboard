@@ -203,8 +203,13 @@ table.data td.right,table.data th.right{text-align:right}
 .drawer__body{padding:16px;overflow-y:auto;flex:1}
 
 /* == 11. assistant (demo agent) == */
-.assist-fab{position:fixed;right:20px;bottom:20px;z-index:50;display:inline-flex;align-items:center;gap:9px;background:var(--amber-fill);color:var(--on-amber);border:1px solid var(--amber-fill);border-radius:var(--r-pill);padding:11px 18px;font-weight:600;font-size:13.5px;box-shadow:var(--shadow-2);cursor:pointer}
-.assist-fab:hover{background:var(--amber-fill-hi)}
+/* One entry point to the assistant, and only one: a round launcher pinned
+   bottom-right. Icon only — the label lives in the panel header. */
+.assist-fab{position:fixed;right:22px;bottom:22px;z-index:50;display:grid;place-items:center;width:52px;height:52px;background:var(--amber-fill);color:var(--on-amber);border:1px solid var(--amber-fill-hi);border-radius:50%;box-shadow:var(--shadow-2);cursor:pointer;padding:0;transition:background .14s,transform .14s}
+.assist-fab svg{width:23px;height:23px;stroke-width:1.6}
+.assist-fab span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.assist-fab:hover{background:var(--amber-fill-hi);transform:translateY(-1px)}
+.assist-fab:active{transform:none}
 .assist{position:fixed;right:20px;bottom:20px;z-index:75;width:min(420px,calc(100vw - 40px));height:min(620px,calc(100vh - 40px));background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-3);display:flex;flex-direction:column;overflow:hidden}
 .assist--docked{position:static;width:auto;height:100%;border-radius:var(--r-lg);box-shadow:none}
 .assist__head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);flex:none;background:var(--surface)}
@@ -251,6 +256,47 @@ table.data td.right,table.data th.right{text-align:right}
 .timeline{border-left:1px solid var(--line);padding-left:18px;position:relative}
 .timeline__item{position:relative;padding-bottom:16px}
 .timeline__item::before{content:"";position:absolute;left:-22px;top:5px;width:7px;height:7px;border-radius:50%;background:var(--amber);border:2px solid var(--surface)}
+
+/* == 12b. sidebar: rail mode + colour ==
+   Two controls sit in the sidebar footer: collapse to an icon rail, and switch
+   the sidebar to the brand yellow. Both persist per app in localStorage. */
+.side__toggles{display:flex;gap:6px}
+.side__toggles .btn{flex:1;justify-content:center}
+
+/* rail: 64px wide, icons only, labels reachable by title + aria-label */
+.shell.is-rail{grid-template-columns:64px minmax(0,1fr)}
+.shell.is-rail .side__name,
+.shell.is-rail .side__tag,
+.shell.is-rail .navgroup__label,
+.shell.is-rail .navlink span,
+.shell.is-rail .navlink__count,
+.shell.is-rail .side__foot .btn span,
+.shell.is-rail .side__sub{display:none}
+.shell.is-rail .side__brand{justify-content:center;padding:0}
+.shell.is-rail .side__nav{padding:12px 8px}
+.shell.is-rail .navlink{justify-content:center;padding:9px 0}
+.shell.is-rail .navgroup+.navgroup{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.shell.is-rail .side__foot{padding:10px 8px}
+.shell.is-rail .side__foot .btn{padding:8px 0;width:100%}
+.shell.is-rail .side__toggles{flex-direction:column}
+
+/* yellow sidebar. Ink on #EAC81C is 10.8:1, so text stays ink — never white. */
+.side[data-tone="amber"]{background:var(--amber-fill);border-right-color:var(--amber-fill-hi)}
+.side[data-tone="amber"] .side__brand,
+.side[data-tone="amber"] .side__foot{border-color:rgba(23,24,26,.16)}
+.side[data-tone="amber"] .mark{background:var(--ink);color:var(--amber-fill)}
+.side[data-tone="amber"] .side__name{color:var(--ink)}
+.side[data-tone="amber"] .side__tag,
+.side[data-tone="amber"] .navgroup__label,
+.side[data-tone="amber"] .navlink__count{color:var(--amber-darker)}
+.side[data-tone="amber"] .navlink{color:var(--ink)}
+.side[data-tone="amber"] .navlink svg{color:var(--amber-darker)}
+.side[data-tone="amber"] .navlink:hover{background:rgba(23,24,26,.07)}
+.side[data-tone="amber"] .navlink.is-active{background:var(--bg);color:var(--ink)}
+.side[data-tone="amber"] .navlink.is-active svg{color:var(--amber-deep)}
+.side[data-tone="amber"] .btn{background:rgba(255,255,255,.72);border-color:rgba(23,24,26,.18);color:var(--ink)}
+.side[data-tone="amber"] .btn:hover{background:var(--bg)}
+.side[data-tone="amber"] .navgroup+.navgroup{border-color:rgba(23,24,26,.16)}
 
 /* == 13. responsive == */
 .sidebtn{display:none}

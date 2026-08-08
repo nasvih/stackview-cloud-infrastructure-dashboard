@@ -57,7 +57,7 @@ bill.
 ## Stackview Insight
 
 The in-app assistant reads the live store, so its answers change when you change the data. It
-handles fifteen question shapes, including:
+handles seventeen question shapes:
 
 - what is idle right now
 - what is safe to switch off
@@ -70,12 +70,20 @@ handles fifteen question shapes, including:
 - how much does prod cost, spend by environment
 - which team spends the most
 - which accounts are stale
+- open the access review — every check in one answer
+- who owns the most resources, and what has no owner
 - how many resources do we have, and where
 - which resources are untagged
 - what is in the cleanup plan
 - what are the most expensive resources
 
-Press <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd> anywhere, or use the launcher in the bottom right.
+There is one way in and only one: the round launcher at the bottom right, or <kbd>⌘K</kbd> /
+<kbd>Ctrl K</kbd> from anywhere. The launcher is icon only — a single speech bubble, 52px, with its
+name on the tooltip and on the accessible label.
+
+Every suggestion chip the assistant can ever show — the opening four, the three it offers after
+each answer, and the ones named in its fallback lines — was asked back to it in a browser and
+answered from real data. None of them dead-ends on "no match".
 
 ## Run it
 
@@ -112,6 +120,19 @@ stackview/
   src/views/*.js          one module per screen
   README.md  DOCS.md  LICENSE  .gitignore  .nojekyll
 ```
+
+## The sidebar
+
+Two controls sit in the sidebar footer, one click from every screen:
+
+- **Collapse / Expand** — drops the sidebar to a 64px icon rail. Labels, group headings and the
+  alert count go; every nav icon keeps its name on a tooltip and an `aria-label`. Under 900px the
+  sidebar is already a drawer, so the rail control hides itself and stays out of the way.
+- **Yellow / White** — switches the sidebar to the brand yellow. Text stays ink on yellow, never
+  white.
+
+Both report `aria-pressed`, and both are remembered under `stackview.prefs.v1` — a display choice,
+so **Reset demo data** deliberately leaves them alone.
 
 ## Demo notes
 
