@@ -269,7 +269,10 @@ const topbar = h('header', { class: 'topbar' },
     'aria-label': 'About this demo',
     title: 'Every figure, resource, account and alert here is invented sample data and nothing leaves your browser. Open for the detail.',
     onclick: () => aboutModal(),
-  }, 'About this demo'));
+    /* the first two words are dropped on a narrow phone, where this pill would
+       otherwise take a third of the bar and leave the view title at two
+       characters. The aria-label above carries the full name either way. */
+  }, h('span', { class: 'sv-demopill__long' }, 'About this '), 'demo'));
 
 const viewEl = h('main', { class: 'view view--pad', id: 'view', tabindex: '-1' });
 

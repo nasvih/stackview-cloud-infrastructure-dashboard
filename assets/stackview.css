@@ -262,6 +262,26 @@ body.is-phoneview .assist-fab,body.is-phoneview .assist,body.is-phoneview .toast
 [data-theme="dark"] .sv-phone__screen{background:var(--bg)}
 [data-theme="dark"] .sv-navscrim{background:rgba(0,0,0,.6)}
 
+/* == assistant message tables ==
+   The bubble is a flex item beside the avatar, so its automatic minimum is the
+   table's own minimum: four money columns will not fold, and the bubble grows
+   past the panel. A scrolling wrapper drops that minimum to zero, so the
+   bubble stays inside the panel and the table scrolls on its own. */
+.msg,.msg__body{min-width:0}
+.msg__body{max-width:100%;overflow-wrap:anywhere}
+.msg__tablewrap{margin-top:10px;max-width:100%;overflow-x:auto;
+  border:1px solid var(--line);border-radius:var(--r-sm)}
+/* natural width, never less than the bubble: a money column that wraps reads
+   as two numbers, so the table keeps its own size and the wrapper scrolls */
+.msg__tablewrap .msg__table{margin-top:0;border:0;border-radius:0;width:max-content;min-width:100%}
+.msg__tablewrap .msg__table th,.msg__tablewrap .msg__table td{white-space:nowrap}
+
+/* A prose column cannot survive being squeezed: inside a narrow card the
+   three column waste table collapses to a few characters a line. Giving the
+   tables in a scroll wrapper a floor turns that squeeze into a scroll. Every
+   other data table is already wider than this, so nothing else moves. */
+.tablewrap--scroll>table.data{min-width:460px}
+
 /* == responsive == */
 @media (max-width:1080px){
   .sv-wastelist{grid-template-columns:minmax(0,1fr)}
@@ -273,6 +293,23 @@ body.is-phoneview .assist-fab,body.is-phoneview .assist,body.is-phoneview .toast
   /* and a phone frame inside a phone-sized window is nothing to look at:
      the device control belongs to the desktop layout */
   .sv-seg{display:none}
+  /* == touch sizing ==
+     Below 900px the whole shell is driven by a thumb, so the chrome controls
+     grow to a 40px target. Nothing changes above this width, where the same
+     controls are pointed at with a cursor. */
+  .btn{min-height:41px}
+  /* the small button stays visibly the quieter of the two sizes, but 31px is
+     not a thumb target — 38px is the most it can take without reading as an
+     ordinary button beside a card heading */
+  .btn--sm{min-height:38px}
+  .btn--icon,.side__brandbtns .btn{width:40px;height:40px;min-height:40px;padding:9px}
+  .navlink{padding:10px}
+  .side__foot .btn{min-height:40px}
+  .sv-notif__go{padding-top:12px;padding-bottom:13px}
+  .sv-notif__read{width:38px;height:38px;margin-top:7px}
+  /* a pill is a 24px shape by design; as the one topbar control that is a
+     pill it still has to be tappable, so only its vertical padding grows */
+  .sv-demopill{padding-top:8px;padding-bottom:8px}
 }
 @media (max-width:640px){
   /* the topbar carries five controls at this width — the title gives way
@@ -283,8 +320,14 @@ body.is-phoneview .assist-fab,body.is-phoneview .assist,body.is-phoneview .toast
   .topbar .spacer{display:none}
   .sv-topttl{flex:1;min-width:0}
   .sv-topttl .topbar__title,.sv-topttl .topbar__sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .sv-demopill{padding:4px 7px;font-size:9.5px;letter-spacing:.04em}
+  .sv-demopill{padding:8px 8px;font-size:9.5px;letter-spacing:.04em}
   .sv-topbtns{gap:2px}
+  /* the panel hangs off the bell, and the bell is near the right edge of a
+     phone: a 370px panel anchored there runs 140px off the left of the screen
+     with no way to scroll to it. Down here it stops being a dropdown and
+     becomes a sheet pinned to both edges of the viewport. */
+  .sv-notif{position:fixed;top:calc(var(--bar) + 6px);left:12px;right:12px;width:auto;
+    max-height:calc(100vh - var(--bar) - 24px)}
   /* app.css already gives the page head its own row for the buttons at this
      width; here they share that row evenly rather than bunching to the left */
   .page-head .btnrow>*{flex:1;justify-content:center}
@@ -298,7 +341,19 @@ body.is-phoneview .assist-fab,body.is-phoneview .assist,body.is-phoneview .toast
   .sv-alert{flex-direction:column;gap:12px}
   .sv-alert__main{min-width:0}
 }
+@media (max-width:400px){
+  /* five controls in a 320px bar: the pill drops to one word so the view
+     title keeps a readable share of the row rather than one syllable */
+  .sv-demopill__long{display:none}
+}
 @media (max-width:390px){
   .sv-strip{gap:2px}
   .sv-day{min-width:4px}
+}
+@media (max-width:359px){
+  /* seven months of a five figure sum across 320px: the value above each bar
+     was ellipsing to "$5,9". A tighter gap and a smaller figure buy the two
+     characters back — the labels stay whole rather than half true. */
+  .bars{gap:4px}
+  .bars__x{font-size:9px;letter-spacing:-.02em}
 }
