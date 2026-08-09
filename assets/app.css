@@ -57,7 +57,7 @@ svg{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-l
 
 /* == 3. shell == */
 .shell{display:grid;grid-template-columns:var(--sidebar) minmax(0,1fr);min-height:100vh}
-.side{position:sticky;top:0;height:100vh;border-right:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;overflow:hidden}
+.side{position:sticky;top:0;height:100vh;height:100dvh;border-right:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;overflow:hidden}
 .side__brand{display:flex;align-items:center;gap:10px;height:var(--bar);padding:0 18px;border-bottom:1px solid var(--line);flex:none}
 .mark{width:26px;height:26px;border-radius:var(--r-sm);background:var(--amber-fill);color:var(--on-amber);display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:700;flex:none}
 .side__name{font-weight:700;letter-spacing:-.02em;font-size:15px}
@@ -198,7 +198,7 @@ table.data td.right,table.data th.right{text-align:right}
 .toasts{position:fixed;right:18px;bottom:18px;z-index:80;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
 .toast{background:var(--night);color:var(--night-ink);border-radius:var(--r);padding:10px 14px;font-size:13.5px;box-shadow:var(--shadow-2);display:flex;gap:9px;align-items:center;max-width:340px}
 .toast--ok{background:var(--ok)} .toast--bad{background:var(--bad)}
-.drawer{position:fixed;top:0;right:0;height:100vh;width:min(420px,100%);background:var(--surface);border-left:1px solid var(--line);box-shadow:var(--shadow-3);z-index:70;display:flex;flex-direction:column}
+.drawer{position:fixed;top:0;right:0;height:100vh;height:100dvh;width:min(420px,100%);background:var(--surface);border-left:1px solid var(--line);box-shadow:var(--shadow-3);z-index:70;display:flex;flex-direction:column}
 .drawer__head{display:flex;align-items:center;gap:10px;padding:0 16px;height:var(--bar);border-bottom:1px solid var(--line);flex:none}
 .drawer__body{padding:16px;overflow-y:auto;flex:1}
 
@@ -341,7 +341,12 @@ table.data td.right,table.data th.right{text-align:right}
      data grids opt back in with .data--grid and scroll inside their wrapper */
   table.data:not(.data--grid) th{white-space:normal}
   .view{padding:16px}
-  .assist{right:0;bottom:0;width:100vw;height:100vh;border-radius:0}
+  /* 100vh is the whole window, not the part a phone browser actually shows,
+     so the head of the panel — and the close button in it — sat behind the
+     address bar. The safe-area padding keeps it clear of a notch too. */
+  .assist{right:0;bottom:0;width:100vw;height:100vh;height:100dvh;border-radius:0}
+  .assist__head{padding-top:calc(12px + env(safe-area-inset-top))}
+  .assist__form{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
 }
 
 /* == 14. dark mode ==
