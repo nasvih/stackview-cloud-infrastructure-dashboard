@@ -3,6 +3,72 @@
    no gradients, no blur, no glow. Loaded after app.css.
    ============================================================ */
 
+/* == 0. accent: clear azure ==
+   stackview is the infrastructure screen, so its accent is blue. The kit's
+   token NAMES are kept — renaming --amber across every rule in app.css and
+   this file would be a large diff for nothing visible — and only the values
+   move. app.css is the shared kit copy and is never edited.
+
+   The structure is the kit's, unchanged: --amber-fill is a FILL, --amber-deep
+   and --amber-darker are the readable shades on white, --amber-soft and
+   --amber-line are the tint and hairline of a selected state, --on-amber is
+   what sits on the fill.
+
+   Two things had to change rather than simply shift hue.
+
+   1. --on-amber. Ink on #0B70C8 is 3.59:1 and fails; white is 5.04:1, so the
+      fill now carries white text. Everything that reads --on-amber (primary
+      button, brand mark, assistant avatar and launcher) follows automatically.
+
+   2. Distance from --info (#1F5C9E). The kit's info blue is a muted navy at
+      L*38.6 with 67% saturation; the accent is a clear azure at L*46.8 with
+      90% saturation, and its tint (#E4F2FE, b* -7.4) and hairline (#9ACBF2,
+      b* -25.2) are markedly cooler and stronger than --info-soft (b* -5.3)
+      and --info-line (b* -13.3). Two places where the two blues would have
+      sat side by side are re-pointed at other status tokens further down:
+      the AWS provider badge and the "warning" alert rule.
+
+   Contrast, computed not eyeballed:
+     white on --amber-fill ................ 5.04:1
+     --amber-deep on white ................ 5.50:1
+     --amber-deep on --amber-soft ......... 4.82:1
+     --amber-deep on --surface-2 .......... 5.26:1
+     --amber-darker on white .............. 9.25:1
+     --ink on --amber-soft ................ 15.6:1
+   Dark theme:
+     --amber-deep on --surface ............ 8.03:1
+     --amber-deep on --amber-soft ......... 7.30:1
+     --ink on --amber-soft ................ 14.1:1
+     white on --amber-fill ................ 5.04:1 (the fill does not move) */
+:root{
+  --amber:#0B70C8;       --amber-deep:#0C6ABE;   --amber-darker:#08497F;
+  --amber-fill:#0B70C8;  --amber-fill-hi:#0A5CA8;
+  --amber-soft:#E4F2FE;  --amber-line:#9ACBF2;   --on-amber:#FFFFFF;
+  /* the kit's accent-tinted hover, moved off yellow with everything else */
+  --hover:#F0F6FD;
+
+  /* The accent is also used as a large FIELD in two places — the sidebar and
+     the phone-preview surround. A 5:1 fill leaves no room for a second level
+     of text on it, and both of those fields need one (group headings, counts,
+     the tenant line). So the field is one step deeper than the fill: white on
+     it is 6.75:1, which buys a quiet tint at 4.89:1. Same hue, same family,
+     solid. Nothing else in the app uses these. */
+  --sv-field:#0A5CA8;    --sv-field-hi:#084E8E;
+  --sv-field-ink:#FFFFFF;
+  --sv-field-ink-2:#C7DEF6;  /* 4.89:1 on the field */
+  --sv-field-line:#3B7FC4;   /* hairline on the field */
+  --sv-field-mark:#BFD9F5;   /* quiet glyphs on the field, 4.71:1 */
+  --sv-field-btn:#E4EFFB;    /* the pale controls on the field */
+}
+[data-theme="dark"]{
+  --amber-soft:#0E2437;  --amber-line:#1D4B75;   --amber-deep:#6FB6F5;  --amber-darker:#A3D0F8;
+  --hover:#16222E;
+}
+/* the kit selects with ink on the fill, which was right on yellow (10.8:1)
+   and is 3.59:1 on azure — the selection takes --on-amber like every other
+   text that lands on the fill */
+::selection{background:var(--amber-fill);color:var(--on-amber)}
+
 /* == shell extras == */
 .sv-org{margin-bottom:10px}
 .sv-org__name{font-weight:600;font-size:13.5px;margin-top:4px}
@@ -25,20 +91,68 @@
 .sv-about__src{border-top:1px solid var(--line);padding-top:14px}
 .sv-about__src .sv-src{margin-top:10px}
 
-/* == the yellow sidebar is the default, so everything in it is checked
-      against #EAC81C, never against white. Ink text only. ==
-   app.css already moves the shared quiet text (brand tag, group headings,
-   alert count) to --ink-2 on the fill and turns the focus ring ink. These are
-   stackview's own footer bits, held to the same rule: --amber-darker is 4.4:1
-   here, --ink-2 is 8:1. */
-.side[data-tone="amber"] .sv-org__name,
-.side[data-tone="amber"] .sv-reset{color:var(--ink)}
+/* == the accent sidebar is the default, so everything in it is checked
+      against the field, never against white. ==
+   Yellow was a LIGHT surface: app.css therefore pins the ink palette inside
+   this subtree — ink text, ink focus ring, ink hairlines — and re-pins it a
+   second time for dark mode. Azure is a DARK surface, so every one of those
+   rules has to come out the other way round. Re-pointing the same tokens
+   inside the subtree flips all of them at once, in both themes, without
+   touching app.css and without duplicating a single rule.
+
+   Checked against --sv-field (#0A5CA8):
+     white (nav links, brand, tenant name) ........ 6.75:1
+     --sv-field-ink-2 (tag, group labels, counts) . 4.89:1
+     --sv-field-mark (nav icons) .................. 4.71:1
+     white on --sv-field-hi (nav hover) ........... 8.28:1
+     ink on --sv-field-btn (the pale controls) .... 15.7:1
+     --amber-deep on the white selected pill ...... 5.50:1 */
+.side[data-tone="amber"],
+[data-theme="dark"] .side[data-tone="amber"]{
+  --amber-fill:var(--sv-field); --amber-fill-hi:var(--sv-field-hi);
+  --ink:var(--sv-field-ink);   --ink-2:var(--sv-field-ink-2);
+  --muted:var(--sv-field-ink-2); --faint:var(--sv-field-ink-2);
+  --line:var(--sv-field-line); --line-2:var(--sv-field-line);
+  /* the selected nav item is a white pill on the field in both themes, so the
+     subtree keeps a white --bg and a text-on-white --amber-deep even when the
+     page palette is dark */
+  --bg:#FFFFFF;
+  --amber-deep:#0C6ABE;
+  /* quiet glyphs sitting ON the field, where app.css reads --amber-darker */
+  --amber-darker:var(--sv-field-mark);
+  --night-2:#2E3033;
+}
+/* The four kit rules that pair a var(--ink) surface with var(--ink) text.
+   On yellow each was dark-on-light; on azure the two halves swap. */
+.side[data-tone="amber"] .navlink.is-active{background:#FFFFFF;color:#17181A}
+/* the alert count rides inside that pill, and the tint it takes on the field
+   would be 1.4:1 on the white of it */
+.side[data-tone="amber"] .navlink.is-active .navlink__count{color:#5A5F66}
+.side[data-tone="amber"] .navlink:hover{background:var(--sv-field-hi)}
+.side[data-tone="amber"] .btn,
+.side[data-tone="amber"] .side__brandbtns .btn{background:var(--sv-field-btn);border-color:var(--sv-field-btn);color:#17181A}
+.side[data-tone="amber"] .btn:hover,
+.side[data-tone="amber"] .side__brandbtns .btn:hover{background:#FFFFFF;border-color:#FFFFFF}
+/* and the hairlines, which app.css draws as translucent ink — invisible on a
+   dark field, so they are drawn in the field's own lighter step instead */
+.side[data-tone="amber"] .side__brand,
+.side[data-tone="amber"] .side__foot,
+.side[data-tone="amber"] .navgroup+.navgroup{border-color:var(--sv-field-line)}
+
+/* stackview's own footer bits, held to the same rule. --sv-reset is a control
+   on the pale button surface, so it takes ink like the rest of them. */
+.side[data-tone="amber"] .sv-org__name{color:var(--ink)}
 .side[data-tone="amber"] .sv-org .label,
 .side[data-tone="amber"] .sv-org .faint{color:var(--ink-2)}
 .side[data-tone="amber"] ::selection{background:var(--ink);color:var(--amber-fill)}
-/* the dark site link keeps its own fill against the sidebar button styling */
-.side[data-tone="amber"] .sv-site{background:var(--ink);border-color:var(--ink);color:#FFFFFF}
-.side[data-tone="amber"] .sv-site:hover{background:var(--night-2);border-color:var(--night-2)}
+/* the dark site link keeps its own fill against the sidebar button styling —
+   the one dark control on the field, in both themes */
+.side[data-tone="amber"] .sv-site,
+[data-theme="dark"] .side[data-tone="amber"] .sv-site{background:#17181A;border-color:#17181A;color:#FFFFFF}
+.side[data-tone="amber"] .sv-site:hover,
+[data-theme="dark"] .side[data-tone="amber"] .sv-site:hover{background:#2E3033;border-color:#2E3033;color:#FFFFFF}
+.side[data-tone="amber"] .sv-site svg,
+[data-theme="dark"] .side[data-tone="amber"] .sv-site svg{color:#FFFFFF}
 .sv-topttl{min-width:0}
 .sv-navscrim{position:fixed;inset:0;background:rgba(23,24,26,.34);z-index:60}
 .sv-navscrim--drawer{z-index:66}
@@ -79,14 +193,17 @@
 
 /* == phone preview ==
    The app is loaded again inside an iframe at 390x844 so the real
-   breakpoints apply. Solid yellow surround, ink text on it, dark bezel. */
-.sv-phone{position:fixed;inset:0;z-index:90;background:var(--amber-fill);overflow:auto;
+   breakpoints apply. Solid accent surround, white text on it, dark bezel.
+   It is the second place the accent is a full field and it carries two levels
+   of text, so it takes --sv-field like the sidebar rather than the fill. */
+.sv-phone{position:fixed;inset:0;z-index:90;background:var(--sv-field);overflow:auto;
   display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px}
-.sv-phone__bar{display:flex;align-items:center;gap:16px;width:100%;max-width:430px;color:var(--on-amber)}
+.sv-phone__bar{display:flex;align-items:center;gap:16px;width:100%;max-width:430px;color:var(--sv-field-ink)}
 .sv-phone__bar>div{flex:1}
 .sv-phone__name{font-weight:700;font-size:15px;letter-spacing:-.02em}
-.sv-phone__size{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber-darker)}
-.sv-phone__bar .btn{background:var(--surface);border-color:rgba(23,24,26,.2);color:var(--ink)}
+.sv-phone__size{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--sv-field-ink-2)}
+.sv-phone__bar .btn{background:var(--sv-field-btn);border-color:var(--sv-field-btn);color:#17181A}
+.sv-phone__bar .btn:hover{background:#FFFFFF;border-color:#FFFFFF}
 .sv-phone__bezel{width:414px;flex:none;background:var(--night);border:1px solid var(--night-line);
   border-radius:34px;padding:12px}
 .sv-phone__screen{width:390px;height:844px;border:0;border-radius:24px;background:#FFFFFF;display:block}
@@ -128,7 +245,11 @@ body.is-phoneview .assist-fab,body.is-phoneview .assist,body.is-phoneview .toast
 
 .sv-badge{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
   border:1px solid var(--line-2);border-radius:var(--r-xs);padding:2px 6px;color:var(--muted);background:var(--surface-2);flex:none}
-.sv-badge--aws{border-color:var(--amber-line);background:var(--amber-soft);color:var(--amber-deep)}
+/* Provider badges have to be told apart at a glance in a dense table, and the
+   accent is now the same family as --info, which Azure already uses. AWS
+   moves off the accent onto the warn family so the three stay three colours
+   rather than two blues and a grey. */
+.sv-badge--aws{border-color:var(--warn-line);background:var(--warn-soft);color:var(--warn)}
 .sv-badge--azure{border-color:var(--info-line);background:var(--info-soft);color:var(--info)}
 .sv-badge--onprem{border-color:var(--line-2);background:var(--surface-2);color:var(--ink-2)}
 
@@ -193,9 +314,14 @@ body.is-phoneview .assist-fab,body.is-phoneview .assist,body.is-phoneview .toast
 .sv-alert{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;
   border:1px solid var(--line);border-left:3px solid var(--line-2);border-radius:var(--r-lg);
   background:var(--surface);padding:14px 16px}
+/* The severity rules follow the severity pills exactly — critical and high
+   both take the bad pill, warning the warn pill, info the info pill. That was
+   already true of three of the four; "warning" used to borrow the accent,
+   which on azure would have read as the same bar as an info alert directly
+   below it in the sorted list. */
 .sv-alert--critical{border-left-color:var(--bad)}
-.sv-alert--high{border-left-color:var(--warn)}
-.sv-alert--warning{border-left-color:var(--amber)}
+.sv-alert--high{border-left-color:var(--bad)}
+.sv-alert--warning{border-left-color:var(--warn)}
 .sv-alert--info{border-left-color:var(--info)}
 .sv-alert__main{flex:1;min-width:260px}
 .sv-alert__main .row{margin-bottom:7px}
@@ -234,21 +360,17 @@ body.is-phoneview .assist-fab,body.is-phoneview .assist,body.is-phoneview .toast
 .sv-dlitem .small{display:block}
 
 /* == dark mode ==
-   app.css carries the palette; these are stackview's own pieces, plus the
-   one thing that must not follow the palette: the yellow sidebar. Yellow is
-   yellow in both themes, so everything on it stays ink — never the light
-   --ink of the dark palette. Re-pointing the tokens inside that one subtree
-   keeps every shared rule correct without duplicating any of them. */
+   app.css carries the palette; these are stackview's own pieces. The accent
+   sidebar does not need a second block here any more: azure is a dark surface
+   in both themes, so the one token block up in section 0 already covers the
+   dark theme, and it overrides app.css's yellow-era dark pinning on the same
+   selector. */
 :root{color-scheme:light}
 [data-theme="dark"]{color-scheme:dark}
 
-[data-theme="dark"] .side[data-tone="amber"]{
-  --ink:#17181A; --ink-2:#2E3033; --muted:#3A3D42; --faint:#4A4E55;
-  --bg:#FFFFFF; --surface:#FFFFFF; --surface-2:#FAFAF8; --hover:#FEFBEA;
-  --line:#E7E7E4; --line-2:#D8D8D3;
-  --amber-deep:#8A6D00; --amber-darker:#6B5400; --night-2:#222427;
-}
-/* the one inverted control in the sidebar: ink block, light text, in both themes */
+/* the one inverted control in the sidebar: on the default (grey) sidebar in
+   dark mode it is a light block with dark text — the accent sidebar keeps its
+   own ink block, set alongside the rest of the tone rules above */
 [data-theme="dark"] .sv-site{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 [data-theme="dark"] .sv-site svg{color:var(--bg)}
 [data-theme="dark"] .sv-site:hover{background:var(--ink-2);border-color:var(--ink-2);color:var(--bg)}

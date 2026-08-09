@@ -3,7 +3,7 @@
    network), and a single versioned cache so an update wipes the old one.
    Bump CACHE_VERSION whenever the file list or any cached asset changes. */
 
-const CACHE_VERSION = 'v8';
+const CACHE_VERSION = 'v9';
 const CACHE = `${self.registration.scope}::${CACHE_VERSION}`;
 
 /* stackview's own shell — every file the app needs to draw a screen with no

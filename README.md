@@ -173,15 +173,15 @@ order, plus the **About this demo** button that opens the modal.
   notification is gone. Mark one read, mark all read; the read marks persist under their own key,
   so **Reset demo data** does not throw them away. When there is nothing to say it says so.
 - **Device preview** — a desktop and a phone. Phone mode loads the app again inside a 390 × 844
-  `<iframe>`, in a rounded dark bezel on a yellow surround with the app name above it and a clear
+  `<iframe>`, in a rounded dark bezel on a solid azure surround with the app name above it and a clear
   way back. It is a real second viewport, so the real breakpoints apply — not a scaled screenshot.
   The framed copy hides the device control (`?frame=phone`) so there is no frame inside the frame.
   Under 900px the control hides itself: a phone frame inside a phone-sized window is nothing to
   look at.
 - **Dark mode** — sets `data-theme="dark"` on `<html>` and remembers it. With nothing stored the
   operating system decides and keeps deciding; the attribute is written before first paint by a
-  small inline script, so a dark browser never flashes white. The yellow keeps ink text on it in
-  both themes — the sidebar re-points its own ink tokens rather than following the dark palette.
+  small inline script, so a dark browser never flashes white. The accent sidebar keeps white text
+  on it in both themes — it re-points its own ink tokens rather than following the page palette.
   Severity stays distinguishable and stays paired with a word: colour never carries a state on its
   own.
 
@@ -206,7 +206,7 @@ Safari has no install prompt. Installed, it opens in its own window with no brow
 A service worker (`sw.js`) caches the whole shell — the page, both stylesheets, every module, the
 manifest and the icons — on first visit, so a reload works with no connection at all. There is
 still no network call in the application code; the demo data is generated locally either way.
-`manifest.webmanifest` carries the name, the `#EAC81C` theme colour and the three icons under
+`manifest.webmanifest` carries the name, the `#0B70C8` theme colour and the three icons under
 `assets/icons/`. Bump `CACHE_VERSION` in `sw.js` when the file list changes.
 
 ## Deploy to GitHub Pages
@@ -241,11 +241,11 @@ stackview/
 
 ## The sidebar
 
-**The brand yellow is the default.** A first visit renders the navigation as a solid `#EAC81C`
-panel with ink text; plain white is the alternative, one click away. Everything inside it is
-checked against the yellow rather than against white — the tenant line, the group headings and the
-open-alert count sit at 8:1, the nav labels at 10.8:1, and the focus ring turns ink so it does not
-disappear into the fill. White text on yellow never appears.
+**The brand azure is the default.** A first visit renders the navigation as a solid `#0A5CA8`
+panel with white text; plain white is the alternative, one click away. Everything inside it is
+checked against the azure rather than against white — the tenant line, the group headings and the
+open-alert count sit at 4.9:1, the nav labels at 6.8:1, and the focus ring turns white so it does
+not disappear into the fill. Ink text on the accent never appears.
 
 Two icon-only controls sit on the brand row at the top of the sidebar, right of the app name:
 
@@ -254,9 +254,9 @@ Two icon-only controls sit on the brand row at the top of the sidebar, right of 
   tooltip and an `aria-label`. In the rail the brand row stacks so both controls stay reachable.
   Under 900px the sidebar is already a drawer, so the rail control hides itself and stays out of
   the way.
-- **Sidebar colour** — a circle half filled. Switches the sidebar between the brand yellow and
+- **Sidebar colour** — a circle half filled. Switches the sidebar between the brand azure and
   plain white. It names no colour: the glyph carries that, and `aria-pressed` reports whether the
-  yellow tone is on.
+  accent tone is on.
 
 Both report `aria-pressed`, and both are remembered under `stackview.prefs.v1` — a display choice,
 so **Reset demo data** deliberately leaves them alone.

@@ -31,7 +31,7 @@ const app = qs('#app');
 
 /* Sidebar preferences — rail collapse and brand colour. Kept out of the demo
    store so that "Reset demo data" does not throw away a display choice.
-   The brand yellow is the default navigation; plain white is the alternative,
+   The brand azure is the default navigation; plain white is the alternative,
    so a first visit with nothing stored renders data-tone="amber". */
 const PREFS_KEY = 'stackview.prefs.v1';
 const RAIL_MIN = 900;   /* below this the sidebar is a drawer, so no rail */
@@ -70,7 +70,7 @@ const SOURCE_URL = 'https://github.com/nasvih/stackview-cloud-infrastructure-das
 const SOURCE_NOTE = 'The source is published so it can be read, run and evaluated. It is not open source — copying, modifying, redistributing, deploying it or using it as training data needs written permission. See the LICENSE file in the repository.';
 
 /* The colour control never names a colour: the glyph carries it and
-   aria-pressed reports whether the yellow tone is on. */
+   aria-pressed reports whether the accent tone is on. */
 const TONE_LABEL = 'Sidebar colour';
 const railLabel = (railed) => (railed ? 'Expand sidebar' : 'Collapse sidebar');
 
@@ -325,7 +325,7 @@ function applyTheme() {
   const dark = isDark();
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   const meta = qs('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', dark ? '#141517' : '#EAC81C');
+  if (meta) meta.setAttribute('content', dark ? '#141517' : '#0B70C8');
   const label = dark ? 'Switch to light mode' : 'Switch to dark mode';
   themeBtn.setAttribute('aria-label', label);
   themeBtn.setAttribute('aria-pressed', dark ? 'true' : 'false');

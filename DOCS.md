@@ -90,7 +90,7 @@ subscribers. `store.reset()` re-seeds. That is the whole state layer.
 
 **Sidebar chrome.** The rail collapse and the sidebar colour are display preferences, not demo
 data, so they live in their own `stackview.prefs.v1` key and survive **Reset demo data**. The
-defaults are `{ rail: false, tone: 'amber' }` — **the brand yellow is the default sidebar**, so a
+defaults are `{ rail: false, tone: 'amber' }` — **the brand azure is the default sidebar**, so a
 visitor with nothing stored gets `data-tone="amber"`; `'default'` is the plain white alternative.
 Both controls live in `.side__brandbtns`, on the brand row beside the app name, and are icon-only —
 the kit clips their `<span>` and sizes them to 30×30, so the glyph and the accessible name do all
@@ -310,22 +310,26 @@ X has to route to a real intent.
 | Control | Where | Notes |
 |---|---|---|
 | Notifications | `src/notify.js` | `buildNotifications(state)` derives the list on every paint from open critical alerts, budget drift against last month, elevated accounts without MFA, keys past a year and long-idle resources. Ids are stable (`alert:AL-2400`, `mfa:U-104`), and only the read ids are persisted, under `stackview.notifs.v1`. `store.subscribe` repaints the badge, so a change anywhere updates it. The outside-click handler reads `event.composedPath()` rather than the live DOM, because marking something read redraws the panel and detaches the button that was clicked |
-| Device preview | `src/main.js` | Phone mode appends `.sv-phone`: an `<iframe>` of `./index.html?frame=phone` plus the current hash, sized 390 × 844 inside a dark bezel on an `--amber-fill` surround. A real second viewport, so the real media queries apply. `FRAMED` hides the control inside the frame, and the whole control hides under 900px |
+| Device preview | `src/main.js` | Phone mode appends `.sv-phone`: an `<iframe>` of `./index.html?frame=phone` plus the current hash, sized 390 × 844 inside a dark bezel on a solid `--sv-field` surround. A real second viewport, so the real media queries apply. `FRAMED` hides the control inside the frame, and the whole control hides under 900px |
 | Dark mode | `src/main.js` + `assets/stackview.css` | `applyTheme()` writes `data-theme` on `<html>` and updates `<meta name="theme-color">`. `prefs.theme === null` means follow `prefers-color-scheme`, and the media query listener keeps following it until the reader picks a side. The inline script in `index.html` writes the attribute before first paint |
 
-### Dark mode and the yellow
+### Dark mode and the accent sidebar
 
 `app.css` carries the palette under `[data-theme="dark"]`. The one thing that must not follow it is
-the yellow sidebar: `--ink` becomes near-white in dark, which would put white text on `#EAC81C`.
-`assets/stackview.css` re-points the tokens inside that one subtree instead of restating the rules:
+the accent sidebar. `app.css` was written around a light yellow fill and paints ink text on it, in
+both themes; stackview's accent is a dark azure, so `assets/stackview.css` re-points the tokens
+inside that one subtree — the same trick, the other way round, and once for both themes:
 
 ```css
+.side[data-tone="amber"],
 [data-theme="dark"] .side[data-tone="amber"]{
-  --ink:#17181A; --ink-2:#2E3033; --bg:#FFFFFF; --surface:#FFFFFF; …
+  --amber-fill:var(--sv-field); --ink:#FFFFFF; --ink-2:#C7DEF6; --bg:#FFFFFF; …
 }
 ```
 
-Every shared rule that paints sidebar text then stays correct with no duplication. The same section
+Every shared rule that paints sidebar text then stays correct with no duplication; only the handful
+that pair a `var(--ink)` surface with `var(--ink)` text — the selected nav pill, the pale sidebar
+buttons, the nasvih.in block — are restated. The same section
 lifts the `.select` chevron, gives the uptime day blocks an inset hairline so adjacent blocks stay
 separable on a dark ground, and keeps `.sv-site` inverted in both themes.
 
@@ -362,44 +366,57 @@ the bell reports `aria-expanded`, tabs report `aria-selected`, and the focus rin
 
 ## Design tokens
 
-All from `assets/app.css`, which also carries the dark palette under `[data-theme="dark"]`.
-`assets/stackview.css` only composes them — the only literal colours it writes are the light-theme
-token values it re-points inside the yellow sidebar when the page is dark.
+The structure is `assets/app.css`, which also carries the dark palette under `[data-theme="dark"]`.
+`app.css` is a verbatim copy of the shared kit and is never edited. `assets/stackview.css` composes
+its tokens and overrides the accent family — the kit ships one yellow accent for all six demo apps,
+and stackview's is a clear azure. The token **names** are the kit's; only the values move.
 
 | Token | Value | Used for |
 |---|---|---|
 | `--bg` / `--surface` | `#FFFFFF` | page and card ground |
 | `--surface-2` | `#FAFAF8` | table headers, meter tracks, assistant log |
-| `--hover` | `#FEFBEA` | row and control hover |
+| `--hover` | `#F0F6FD` | row and control hover |
 | `--ink` / `--ink-2` / `--muted` / `--faint` | `#17181A` `#2E3033` `#5A5F66` `#686E75` | text ramp |
 | `--line` / `--line-2` | `#E7E7E4` `#D8D8D3` | hairlines and control borders |
-| `--amber` / `--amber-fill` | `#EAC81C` | the one brand colour, always a **fill** with ink text |
-| `--amber-deep` | `#8A6D00` | the only amber allowed as text on white |
-| `--amber-soft` / `--amber-line` | `#FEF9DA` `#F0DE8C` | active nav, banners, planned cards |
+| `--amber` / `--amber-fill` | `#0B70C8` | the one brand colour, always a **fill** with white text |
+| `--on-amber` | `#FFFFFF` | what sits on the fill — 5.04:1 |
+| `--amber-deep` / `--amber-darker` | `#0C6ABE` `#08497F` | the accent as text on white — 5.50:1 / 9.25:1 |
+| `--amber-soft` / `--amber-line` | `#E4F2FE` `#9ACBF2` | active nav, banners, planned cards |
+| `--sv-field` | `#0A5CA8` | the accent as a large field: sidebar and phone surround |
 | `--ok` / `--warn` / `--bad` / `--info` | `#1E7A4B` `#9A6400` `#B3261E` `#1F5C9E` | status, each always paired with a word |
 | `--r-lg` / `--r` / `--r-sm` / `--r-xs` | 12 / 8 / 6 / 4 px | radii |
 | `--sans` / `--mono` | Inter / JetBrains Mono | UI text / labels, numbers, identifiers |
 
-### The yellow sidebar is the default
+`--info` is the other blue in the palette, and the accent is deliberately kept clear of it: `--info`
+is a muted navy (L\* 38.6, 67% saturation), the accent a clear azure (L\* 46.8, 90% saturation), and
+the accent's tint and hairline are markedly cooler and stronger than `--info-soft` / `--info-line`.
+Two places where the two would have sat side by side were re-pointed rather than left to luck: the
+AWS provider badge now takes the warn family (Azure keeps `--info`), and the `warning` alert rule
+takes `--warn`, so every severity rule matches its own severity pill.
 
-`.side[data-tone="amber"]` is `--amber-fill` with `--ink` text — 10.8:1 — and it is what a first
-visit renders. That makes the yellow the resting state rather than an opt-in, so everything sitting
-on it is measured against `#EAC81C`, never against white:
+### The accent sidebar is the default
 
-| Element | Colour | On `#EAC81C` |
+`.side[data-tone="amber"]` is the accent as a field with white text — 6.75:1 — and it is what a
+first visit renders. That makes the azure the resting state rather than an opt-in, so everything
+sitting on it is measured against `--sv-field` `#0A5CA8`, never against white. It is a **dark**
+surface, the reverse of the yellow the kit was written for, so the tone subtree carries the light
+end of the ramp in both themes:
+
+| Element | Colour | On `#0A5CA8` |
 |---|---|---|
-| Brand name, nav labels, tenant name, footer button text | `--ink` `#17181A` | 10.8:1 |
-| Brand tag, group headings, the open-alert count, tenant label and units | `--ink-2` `#2E3033` | 8.0:1 |
-| Nav icons | `--amber-darker` `#6B5400` | 4.4:1 — graphics, so the 3:1 bar applies |
-| Active nav link | `--ink` on `--bg` | 15.9:1 |
-| nasvih.in link | `#FFFFFF` on `--ink` | 15.4:1 |
+| Brand name, nav labels, tenant name | `#FFFFFF` | 6.75:1 |
+| Brand tag, group headings, the open-alert count, tenant label and units | `#C7DEF6` | 4.89:1 |
+| Nav icons | `#BFD9F5` | 4.71:1 |
+| Nav hover | `#FFFFFF` on `#084E8E` | 8.28:1 |
+| Active nav link | `#17181A` on `#FFFFFF` | 17.4:1 |
+| Sidebar buttons | `#17181A` on `#E4EFFB` | 15.7:1 |
+| nasvih.in link | `#FFFFFF` on `#17181A` | 15.4:1 |
 
-`--amber-darker` lands at 4.4:1 on the fill — fine for the icon shapes it was drawn for, short of
-4.5:1 for the 10–11px mono labels that are now on screen by default, so `app.css` holds the quiet
-sidebar text at `--ink-2` and `assets/stackview.css` does the same for stackview's own footer
-lines. The shared focus ring is `--amber`, invisible on the amber fill, so `app.css` turns it
-`--ink` inside the yellow sidebar; `assets/stackview.css` inverts `::selection` there for the same
-reason. White text on yellow never appears anywhere.
+The field is one step deeper than `--amber-fill` for exactly one reason: white on the fill is
+5.04:1, which leaves no headroom for a second level of text, and the sidebar needs one for its group
+headings and counts. The shared focus ring is `--amber`, which would sink into the field, so
+`app.css` turns it `--ink` inside the sidebar — now white; `assets/stackview.css` inverts
+`::selection` there for the same reason. Ink text on the accent never appears anywhere.
 
 Rules the stylesheet keeps: solid fills only — no gradients, no blur, no glow shadows, no emoji as
 icons. Icons are inline stroke SVG using `currentColor`. Status is never signalled by colour alone;
