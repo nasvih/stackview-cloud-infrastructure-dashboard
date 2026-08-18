@@ -2,8 +2,10 @@
    stackview — boot: store, shell, nav, router, assistant.
    ============================================================ */
 
-import { h, qs, icon, ICONS, router, toast, confirmDialog, modal } from '../lib/ui.js';
+import { h, qs, icon, ICONS, router, toast, confirmDialog, modal, fmtDate, setAgoStrings, setUiStrings } from '../lib/ui.js';
 import { initPWA } from '../lib/pwa.js';
+import { createI18n } from '../lib/i18n.js';
+import { STRINGS } from './strings.js';
 import { store, ORG, openAlerts } from './data.js';
 import { buildAssistant, ACTION_HELP } from './agent.js';
 import { notificationsControl } from './notify.js';
@@ -16,15 +18,88 @@ import alerts from './views/alerts.js';
 import uptime from './views/uptime.js';
 import reports from './views/reports.js';
 
-const ROUTES = {
-  overview: { title: 'Overview', sub: 'Estate at a glance', icon: 'home', group: 'Monitor', view: overview },
-  alerts: { title: 'Alerts', sub: 'Open and acknowledged', icon: 'bell', group: 'Monitor', view: alerts },
-  uptime: { title: 'Uptime', sub: 'Last 30 days', icon: 'chart', group: 'Monitor', view: uptime },
-  resources: { title: 'Resources', sub: 'Inventory', icon: 'server', group: 'Estate', view: resources },
-  cost: { title: 'Cost', sub: 'Spend and waste', icon: 'cloud', group: 'Estate', view: cost },
-  access: { title: 'Access', sub: 'Users and roles', icon: 'shield', group: 'Governance', view: access },
-  reports: { title: 'Reports', sub: 'Monthly review', icon: 'file', group: 'Governance', view: reports },
+/* ---------- language ----------
+   One instance for the whole app. `t` is exported so every view reads the
+   same dictionary; switching writes the choice and reloads, because these
+   screens are built imperatively and a reload is the honest way to repaint
+   every string, aria-label and chart axis. */
+const i18n = createI18n({ key: 'stackview', dict: STRINGS });
+export const t = i18n.t;
+
+/* A dictionary lookup that falls back to the value already on the record.
+   The English dictionary deliberately carries no `data.*` branch — in
+   English the app reads the seeded sample text straight off the estate. */
+export function tr(path, raw) {
+  const v = t(path);
+  return v === path ? raw : v;
+}
+
+/* The vocabulary of the estate, looked up wherever it is shown. Nothing
+   here is written into the store, so a resource that was stopped in
+   English still reads as stopped in Arabic. */
+export const label = {
+  env: (v) => tr(`envs.${v}`, v),
+  state: (v) => tr(`states.${v}`, v),
+  sev: (v) => tr(`sev.${v}`, v),
+  alertStatus: (v) => tr(`alertStatus.${v}`, v),
+  role: (v) => tr(`roles.${v}`, v),
+  provider: (v) => tr(`providers.${v}`, v),
+  directory: (v) => tr(`directories.${v}`, v),
+  team: (v) => tr(`teams.${v}`, v),
+  serviceGroup: (v) => tr(`serviceGroups.${v}`, v),
+  source: (v) => tr(`sources.${v}`, v),
+  month: (v) => tr(`months.${v}`, v),
+  tier: (v) => tr(`tiers.${v}`, v),
+  service: (v) => tr(`uptimeServices.${v}`, v),
+  userStatus: (v) => tr(`access.status${String(v).charAt(0).toUpperCase()}${String(v).slice(1)}`, v),
 };
+
+/* The sample estate's own prose. */
+export const wasteWhy = (r) => tr(`data.waste.${r.id}.why`, r.waste.why);
+export const wasteAction = (r) => tr(`data.waste.${r.id}.action`, r.waste.action);
+export const alertTitle = (a) => tr(`data.alerts.${a.id}.title`, a.title);
+export const alertDetail = (a) => tr(`data.alerts.${a.id}.detail`, a.detail);
+export const alertRunbook = (a) => tr(`data.alerts.${a.id}.runbook`, a.runbook);
+
+/* The activity feed and the alert timelines are stored as a key and its
+   numbers rather than as a finished sentence, so they come back in the
+   language the reader is in now — not the one they were in when they
+   pressed the button. Entries written by an older build keep their text. */
+export const feedText = (e) => {
+  if (!e || !e.k) return (e && e.text) || '';
+  const p = Object.assign({}, e.p);
+  /* a few parameters are stored as the key of a thing rather than as its
+     name, so a month, a date or a role also comes back translated */
+  if (p.mkey) p.month = `${label.month(p.mkey)}${p.year ? ` ${p.year}` : ''}`;
+  if (p.dkey) p.date = fmtDate(p.dkey, { day: '2-digit', month: 'short' });
+  if (p.skey) p.name = label.service(p.skey);
+  if (p.rFrom) p.from = label.role(p.rFrom);
+  if (p.rTo) p.to = label.role(p.rTo);
+  return t(`activity.${e.k}`, p);
+};
+export const lineText = (e) => (e && e.k ? t(`timeline.${e.k}`, e.p || {}) : (e && e.text) || '');
+/* The offboarding checklist, in the reader's language. */
+export const offboardSteps = () => i18n.list('offboard');
+
+setAgoStrings({
+  now: t('time.now'),
+  mins: (n) => t('time.mins', { n }),
+  hours: (n) => t('time.hours', { n }),
+  days: (n) => t('time.days', { n }),
+});
+setUiStrings({ cancel: t('ui.cancel'), confirm: t('ui.confirmOk'), close: t('ui.close') });
+
+const ROUTES = {
+  overview: { icon: 'home', group: 'Monitor', view: overview },
+  alerts: { icon: 'bell', group: 'Monitor', view: alerts },
+  uptime: { icon: 'chart', group: 'Monitor', view: uptime },
+  resources: { icon: 'server', group: 'Estate', view: resources },
+  cost: { icon: 'cloud', group: 'Estate', view: cost },
+  access: { icon: 'shield', group: 'Governance', view: access },
+  reports: { icon: 'file', group: 'Governance', view: reports },
+};
+const routeTitle = (k) => t(`routes.${k}.title`);
+const routeSub = (k) => t(`routes.${k}.sub`);
 
 /* ---------- shell ---------- */
 const app = qs('#app');
@@ -67,12 +142,11 @@ const GLYPH = {
 
 /* the repository this demo is published from */
 const SOURCE_URL = 'https://github.com/nasvih/stackview-cloud-infrastructure-dashboard';
-const SOURCE_NOTE = 'The source is published so it can be read, run and evaluated. It is not open source — copying, modifying, redistributing, deploying it or using it as training data needs written permission. See the LICENSE file in the repository.';
 
 /* The colour control never names a colour: the glyph carries it and
    aria-pressed reports whether the accent tone is on. */
-const TONE_LABEL = 'Sidebar colour';
-const railLabel = (railed) => (railed ? 'Expand sidebar' : 'Collapse sidebar');
+const toneLabel = () => t('chrome.tone');
+const railLabel = (railed) => (railed ? t('chrome.railExpand') : t('chrome.railCollapse'));
 
 const railBtn = h('button', {
   class: 'btn btn--sm sv-railbtn',
@@ -86,41 +160,19 @@ const toneBtn = h('button', {
   type: 'button',
   dataset: { chrome: 'tone' },
   'aria-controls': 'sidebar',
-  title: TONE_LABEL,
-  'aria-label': TONE_LABEL,
+  title: toneLabel(),
+  'aria-label': toneLabel(),
   onclick: () => { prefs.tone = prefs.tone === 'amber' ? 'default' : 'amber'; savePrefs(); applyChrome(); },
 });
 
 /* ---------- about this demo ----------
    Four blocks: what the product is, where it helps, what a real deployment
    would look like, and how this particular demo behaves. */
-const ABOUT = [
-  {
-    title: 'What this is',
-    text: 'Stackview is one picture of what a business runs and what it pays for. It puts every resource — across cloud providers and the on-prem racks — in a single inventory, then reads cost by service, by environment and by team on top of it. Access and MFA status, open alerts and 30-day uptime sit on the same estate, so the answer to "what do we run, what does it cost, who can get into it" is one screen rather than three consoles.',
-  },
-  {
-    title: 'Where it helps a business',
-    list: [
-      ['One inventory', 'nobody opens three provider consoles to answer "what do we run". Cloud and on-prem are in the same table, with the same filters.'],
-      ['Waste is found before the bill', 'idle and forgotten resources are listed with a reason and a monthly figure, instead of being noticed at billing time.'],
-      ['Every resource has an owner', 'ownership is attached to the resource, so there is a named person to ask before anything is switched off.'],
-      ['Access review is already written', 'stale accounts, admin without MFA and old keys are listed continuously, so the review stops being an annual scramble.'],
-      ['Alerts leave a trail', 'acknowledgements and mutes are recorded against the alert, so an incident can be reconstructed after the fact.'],
-    ],
-  },
-  {
-    title: 'How it would work for real',
-    text: 'The same interface, reading from the provider APIs and the identity directory instead of sample data, with the inventory, the cost lines and the access findings refreshed on a schedule. What you are looking at here is the interface and the workflow — no account is connected and nothing is being polled.',
-  },
-  {
-    title: 'How this demo works',
-    list: [
-      ['You can actually use it', 'acknowledge and mute alerts, stop resources and reassign owners, work the idle and waste list, run the access review and the offboarding checklist, generate a monthly review. Nothing on these screens is read only.'],
-      ['Your data stays on your machine', 'everything you change is saved in this browser\'s local storage. There is no account and no backend. "Reset demo data" clears it, and it does not sync between browsers or devices.'],
-      ['The assistant is simulated', 'Stackview Insight answers by matching your question against this app\'s own demo data. It is a demonstration of the interaction, not a connected model, and no request leaves your browser.'],
-    ],
-  },
+const about = () => [
+  { title: t('about.whatTitle'), text: t('about.whatText') },
+  { title: t('about.helpTitle'), list: i18n.list('about.help') },
+  { title: t('about.realTitle'), text: t('about.realText') },
+  { title: t('about.demoTitle'), list: i18n.list('about.demo') },
 ];
 
 export function aboutModal() {
@@ -128,8 +180,8 @@ export function aboutModal() {
      modal opened from the footer has to close it first */
   setSidebar(false);
   const body = h('div', { class: 'sv-about' },
-    h('p', { class: 'muted small' }, 'The estate on these screens — Northline Group, its resources, people and bills — is invented sample data.'),
-    ...ABOUT.map((b) => h('div', { class: 'sv-about__b' },
+    h('p', { class: 'muted small' }, t('about.lead')),
+    ...about().map((b) => h('div', { class: 'sv-about__b' },
       h('h4', {}, b.title),
       b.text ? h('p', { class: 'small muted' }, b.text) : null,
       b.list
@@ -138,24 +190,24 @@ export function aboutModal() {
         : null)),
     /* the same worked examples the assistant gives for "what can you do?" */
     h('div', { class: 'sv-about__b' },
-      h('h4', {}, 'What you can ask the assistant to do'),
-      h('p', { class: 'small muted' }, 'Stackview Insight does not only report. Type one of these and it names exactly what it is about to touch, then applies it when you press the button — never before.'),
-      h('ul', { class: 'sv-about__ex' }, ...ACTION_HELP.map((a) => h('li', {},
+      h('h4', {}, t('about.askTitle')),
+      h('p', { class: 'small muted' }, t('about.askLead')),
+      h('ul', { class: 'sv-about__ex' }, ...ACTION_HELP().map((a) => h('li', {},
         h('div', { class: 'sv-about__ask mono' }, a.ask),
-        h('div', { class: 'sv-about__does small muted' }, `It ${a.does}`),
-        h('div', { class: 'label' }, `Lands on ${a.screen}`))))),
+        h('div', { class: 'sv-about__does small muted' }, t('about.itDoes', { does: a.does })),
+        h('div', { class: 'label' }, t('about.landsOn', { screen: a.screen })))))),
     h('div', { class: 'sv-about__b sv-about__src' },
-      h('h4', {}, 'The source'),
-      h('p', { class: 'small muted' }, SOURCE_NOTE),
+      h('h4', {}, t('about.sourceTitle')),
+      h('p', { class: 'small muted' }, t('about.sourceNote')),
       h('a', {
         class: 'btn btn--sm sv-src',
         href: SOURCE_URL,
         target: '_blank',
         rel: 'noopener noreferrer',
-        'aria-label': 'Source on GitHub — opens in a new tab',
-        html: `${GLYPH.code}<span>Source on GitHub</span>`,
+        'aria-label': t('chrome.sourceOnGithubLabel'),
+        html: `${GLYPH.code}<span>${t('chrome.sourceOnGithub')}</span>`,
       })));
-  modal({ title: 'About Stackview', body, actions: [{ label: 'Got it', class: 'btn--primary' }] });
+  modal({ title: t('about.title'), body, actions: [{ label: t('about.ok'), class: 'btn--primary' }] });
 }
 
 /* initPWA appends its control here, and only when the browser offers an
@@ -165,34 +217,33 @@ const installRow = h('div', { class: 'side__pair sv-install' },
   h('button', {
     class: 'btn btn--ghost btn--block btn--sm sv-reset',
     type: 'button',
-    title: 'Reset demo data',
-    'aria-label': 'Reset demo data',
+    title: t('chrome.reset'),
+    'aria-label': t('chrome.reset'),
     onclick: async () => {
       setSidebar(false);
-      const ok = await confirmDialog(
-        'This clears every change you made in this demo — acknowledged alerts, cleanup plans, offboarding progress and generated reports — and rebuilds the sample estate.',
-        { title: 'Reset demo data', okLabel: 'Reset', danger: true });
+      const ok = await confirmDialog(t('chrome.resetBody'),
+        { title: t('chrome.reset'), okLabel: t('chrome.resetOk'), danger: true });
       if (!ok) return;
       store.reset();
-      toast('Demo data reset', 'ok');
+      toast(t('chrome.resetDone'), 'ok');
       render();
     },
-    html: `${icon('refresh')}<span>Reset demo data</span>`,
+    html: `${icon('refresh')}<span>${t('chrome.reset')}</span>`,
   }));
 
 const side = h('aside', { class: 'side', id: 'sidebar' },
   h('div', { class: 'side__brand' },
     h('span', { class: 'mark' }, 'SV'),
     h('div', { style: 'min-width:0' },
-      h('div', { class: 'side__name' }, 'stackview'),
-      h('div', { class: 'side__tag' }, 'IT visibility')),
+      h('div', { class: 'side__name' }, t('app.name')),
+      h('div', { class: 'side__tag' }, t('app.tag'))),
     /* rail and colour: icon-only, right of the name, stacked by the kit when
        the sidebar narrows to the 64px rail */
     h('div', { class: 'side__brandbtns' }, railBtn, toneBtn)),
-  h('nav', { class: 'side__nav', id: 'nav', 'aria-label': 'Primary' }),
+  h('nav', { class: 'side__nav', id: 'nav', 'aria-label': t('chrome.primaryNav') }),
   h('div', { class: 'side__foot' },
     h('div', { class: 'sv-org side__sub' },
-      h('span', { class: 'label' }, 'Tenant'),
+      h('span', { class: 'label' }, t('app.tenant')),
       h('div', { class: 'sv-org__name' }, ORG.name),
       h('div', { class: 'small faint' }, ORG.units.join(' · '))),
     h('div', { class: 'side__pair' },
@@ -201,18 +252,18 @@ const side = h('aside', { class: 'side', id: 'sidebar' },
         href: 'https://www.nasvih.in',
         target: '_blank',
         rel: 'noopener noreferrer',
-        'aria-label': 'nasvih.in — opens in a new tab',
-        title: 'nasvih.in — opens in a new tab',
-        html: `${GLYPH.external}<span>nasvih.in</span>`,
+        'aria-label': t('chrome.siteLabel'),
+        title: t('chrome.siteLabel'),
+        html: `${GLYPH.external}<span>${t('chrome.site')}</span>`,
       }),
       h('a', {
         class: 'btn btn--block btn--sm sv-src',
         href: SOURCE_URL,
         target: '_blank',
         rel: 'noopener noreferrer',
-        'aria-label': 'GitHub — opens the source repository in a new tab',
-        title: 'GitHub — opens the source repository in a new tab',
-        html: `${GLYPH.code}<span>GitHub</span>`,
+        'aria-label': t('chrome.githubLabel'),
+        title: t('chrome.githubLabel'),
+        html: `${GLYPH.code}<span>${t('chrome.github')}</span>`,
       })),
     installRow));
 
@@ -237,9 +288,13 @@ const deviceBtn = (mode, label, glyph) => h('button', {
   onclick: () => setDevice(mode),
   html: glyph,
 });
-const phoneBtn = deviceBtn('phone', 'Preview at phone size', GLYPH.phone);
-const desktopBtn = deviceBtn('desktop', 'Back to desktop size', GLYPH.desktop);
-const deviceGroup = h('div', { class: 'sv-seg', role: 'group', 'aria-label': 'Device preview' }, desktopBtn, phoneBtn);
+const phoneBtn = deviceBtn('phone', t('chrome.phonePreview'), GLYPH.phone);
+const desktopBtn = deviceBtn('desktop', t('chrome.desktopPreview'), GLYPH.desktop);
+const deviceGroup = h('div', { class: 'sv-seg', role: 'group', 'aria-label': t('chrome.devicePreview') }, desktopBtn, phoneBtn);
+
+/* The language switch sits first in the control row — language, then theme,
+   then the device preview — so the reader meets it before anything else. */
+const langBtn = i18n.toggle();
 
 const themeBtn = h('button', {
   class: 'btn btn--ghost btn--icon',
@@ -251,28 +306,29 @@ const topbar = h('header', { class: 'topbar' },
   h('button', {
     class: 'btn btn--ghost btn--icon sidebtn',
     type: 'button',
-    'aria-label': 'Open navigation',
+    'aria-label': t('chrome.openNav'),
     onclick: () => setSidebar(!side.classList.contains('is-open')),
     html: icon('menu'),
   }),
   h('div', { class: 'sv-topttl' },
-    h('div', { class: 'topbar__title', id: 'ttl' }, 'Overview'),
-    h('div', { class: 'topbar__sub', id: 'sub' }, 'Estate at a glance')),
+    h('div', { class: 'topbar__title', id: 'ttl' }, routeTitle('overview')),
+    h('div', { class: 'topbar__sub', id: 'sub' }, routeSub('overview'))),
   h('div', { class: 'spacer' }),
   h('div', { class: 'sv-topbtns' },
     notifs.el,
-    FRAMED ? null : deviceGroup,
-    themeBtn),
+    langBtn,
+    themeBtn,
+    FRAMED ? null : deviceGroup),
   h('button', {
     class: 'pill pill--amber sv-demopill',
     type: 'button',
-    'aria-label': 'About this demo',
-    title: 'Every figure, resource, account and alert here is invented sample data and nothing leaves your browser. Open for the detail.',
+    'aria-label': t('chrome.aboutDemo'),
+    title: t('chrome.aboutPillTitle'),
     onclick: () => aboutModal(),
     /* the first two words are dropped on a narrow phone, where this pill would
        otherwise take a third of the bar and leave the view title at two
        characters. The aria-label above carries the full name either way. */
-  }, h('span', { class: 'sv-demopill__long' }, 'About this '), 'demo'));
+  }, h('span', { class: 'sv-demopill__long' }, t('chrome.aboutPillLong')), t('chrome.aboutPillShort')));
 
 const viewEl = h('main', { class: 'view view--pad', id: 'view', tabindex: '-1' });
 
@@ -303,7 +359,7 @@ function applyChrome() {
 
   const amber = prefs.tone === 'amber';
   toneBtn.setAttribute('aria-pressed', amber ? 'true' : 'false');
-  toneBtn.innerHTML = `${GLYPH.tone}<span>${TONE_LABEL}</span>`;
+  toneBtn.innerHTML = `${GLYPH.tone}<span>${toneLabel()}</span>`;
 
   renderNav(current);
 }
@@ -326,7 +382,7 @@ function applyTheme() {
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   const meta = qs('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', dark ? '#141517' : '#0B70C8');
-  const label = dark ? 'Switch to light mode' : 'Switch to dark mode';
+  const label = dark ? t('chrome.themeToLight') : t('chrome.themeToDark');
   themeBtn.setAttribute('aria-label', label);
   themeBtn.setAttribute('aria-pressed', dark ? 'true' : 'false');
   themeBtn.title = label;
@@ -350,18 +406,18 @@ function openPhone() {
   notifs.close();
   const frame = h('iframe', {
     class: 'sv-phone__screen',
-    title: 'Stackview running in a 390 by 844 phone viewport',
+    title: t('chrome.phoneFrameTitle'),
     src: `./index.html?frame=phone${location.hash || '#/overview'}`,
   });
   const back = h('button', {
     class: 'btn btn--sm', type: 'button', onclick: () => closePhone(),
-    html: `${GLYPH.desktop}<span>Back to desktop</span>`,
+    html: `${GLYPH.desktop}<span>${t('chrome.backToDesktop')}</span>`,
   });
   phoneWrap = h('div', { class: 'sv-phone' },
     h('div', { class: 'sv-phone__bar' },
       h('div', { style: 'min-width:0' },
-        h('div', { class: 'sv-phone__name' }, 'stackview'),
-        h('div', { class: 'sv-phone__size mono' }, 'phone preview · 390 × 844')),
+        h('div', { class: 'sv-phone__name' }, t('app.name')),
+        h('div', { class: 'sv-phone__size mono' }, t('chrome.phoneSize'))),
       back),
     h('div', { class: 'sv-phone__bezel' }, frame));
   document.body.appendChild(phoneWrap);
@@ -385,11 +441,12 @@ function renderNav(active) {
   const groups = [...new Set(Object.values(ROUTES).map((r) => r.group))];
   const openCount = openAlerts(store.state).length;
   for (const g of groups) {
-    const box = h('div', { class: 'navgroup' }, h('div', { class: 'navgroup__label' }, g));
+    const box = h('div', { class: 'navgroup' }, h('div', { class: 'navgroup__label' }, t(`navgroups.${g}`)));
     for (const [key, r] of Object.entries(ROUTES)) {
       if (r.group !== g) continue;
       const railed = shell.classList.contains('is-rail');
-      const label = key === 'alerts' && openCount ? `${r.title} (${openCount} open)` : r.title;
+      const title = routeTitle(key);
+      const label = key === 'alerts' && openCount ? `${title} ${t('chrome.navOpenSuffix', { n: openCount })}` : title;
       const link = h('a', {
         class: `navlink${key === active ? ' is-active' : ''}`,
         href: `#/${key}`,
@@ -398,7 +455,7 @@ function renderNav(active) {
         'aria-label': railed ? label : null,
         title: railed ? label : null,
         onclick: () => setSidebar(false),
-        html: `${icon(r.icon)}<span>${r.title}</span>`,
+        html: `${icon(r.icon)}<span>${title}</span>`,
       });
       if (key === 'alerts' && openCount) link.appendChild(h('span', { class: 'navlink__count' }, String(openCount)));
       box.appendChild(link);
@@ -416,7 +473,7 @@ export function drawer(title, bodyNode, { sub = '' } = {}) {
       h('div', { style: 'flex:1;min-width:0' },
         h('div', { class: 'sv-drawer__ttl truncate' }, title),
         sub ? h('div', { class: 'topbar__sub truncate' }, sub) : null),
-      h('button', { class: 'btn btn--ghost btn--icon', 'aria-label': 'Close panel', onclick: () => closeDrawer(), html: icon('x') })),
+      h('button', { class: 'btn btn--ghost btn--icon', 'aria-label': t('chrome.closePanel'), title: t('chrome.closePanel'), onclick: () => closeDrawer(), html: icon('x') })),
     h('div', { class: 'drawer__body' }, bodyNode));
   const back = h('div', { class: 'sv-navscrim sv-navscrim--drawer', onclick: () => closeDrawer() });
   document.body.appendChild(back);
@@ -445,9 +502,9 @@ export function rerender() { render(lastParts, lastQuery); }
 function render(parts = [], query = new URLSearchParams()) {
   lastParts = parts; lastQuery = query;
   const route = ROUTES[current];
-  qs('#ttl').textContent = route.title;
-  qs('#sub').textContent = route.sub;
-  document.title = `${route.title} · stackview`;
+  qs('#ttl').textContent = routeTitle(current);
+  qs('#sub').textContent = routeSub(current);
+  document.title = t('app.docTitle', { title: routeTitle(current) });
   renderNav(current);
   closeDrawer();
   viewEl.innerHTML = '';
@@ -466,8 +523,8 @@ function render(parts = [], query = new URLSearchParams()) {
     viewEl.appendChild(route.view.render(ctx));
   } catch (err) {
     viewEl.appendChild(h('div', { class: 'empty' },
-      h('h3', {}, 'This screen could not be drawn'),
-      h('p', {}, 'Reset the demo data from the sidebar to rebuild the sample estate.')));
+      h('h3', {}, t('chrome.viewErrorTitle')),
+      h('p', {}, t('chrome.viewErrorBody'))));
     /* keep the message visible in the console for anyone poking at the demo */
     console.warn('[stackview] view error:', err);
   }
@@ -505,6 +562,14 @@ const installBtn = initPWA({
   mount: installRow,
   appName: 'Stackview',
   onNote: (msg) => toast(msg),
+  strings: {
+    install: t('ui.install'),
+    title: (app) => t('ui.installTitle', { app }),
+    installed: (app) => t('ui.installed', { app }),
+    dismissed: t('ui.installDismissed'),
+    ios: t('ui.installIOS'),
+    other: t('ui.installOther'),
+  },
 });
 if (installBtn) installRow.insertBefore(installBtn, installRow.firstChild);
 

@@ -6,6 +6,7 @@ import {
   money0, money2, sar, monthlyTotal, openAlerts, wasteItems, totalWaste, staleUsers,
   adminsNoMfa, fleetUptime, groupSum, projection, PROVIDERS,
 } from '../data.js';
+import { t, label } from '../main.js';
 
 export function render(ctx) {
   const s = ctx.state;
@@ -15,61 +16,93 @@ export function render(ctx) {
   const proj = projection(s);
   const wrap = h('div', { class: 'stack' });
 
+  /* a review that was frozen before the month key was stored keeps the
+     English string it was written with */
+  const reviewMonth = (r) => (r.mkey ? `${label.month(r.mkey)} ${r.myear}` : r.month);
+
   wrap.appendChild(h('div', { class: 'page-head' },
     h('div', { style: 'flex:1;min-width:0' },
-      h('h1', {}, 'Reports'),
-      h('p', {}, `The monthly infrastructure review for ${cur.label} ${cur.year}. Generating a review freezes the current numbers so you can compare against it later; the CSV is the file you attach to the meeting invite.`)),
+      h('h1', {}, t('routes.reports.title')),
+      h('p', {}, t('reports.lead', { month: label.month(cur.label), year: cur.year }))),
     h('div', { class: 'btnrow' },
       h('button', {
-        class: 'btn btn--primary', type: 'button', html: `${icon('file')}<span>Generate monthly review</span>`,
+        class: 'btn btn--primary', type: 'button', html: `${icon('file')}<span>${t('reports.generate')}</span>`,
         onclick: () => generate(),
       }))));
 
   /* ---------- headline ---------- */
   wrap.appendChild(h('div', { class: 'grid g4' },
-    tile('Run rate', money0(monthlyTotal(s)), sar(monthlyTotal(s))),
-    tile('vs ' + prev.label, `${cur.total - prev.total >= 0 ? '+' : ''}${money0(cur.total - prev.total)}`, pct(((cur.total - prev.total) / prev.total) * 100, 1)),
-    tile('Uptime', pct(fleetUptime(s), 3), `${s.services.length} services`),
-    tile('Saving available', money0(totalWaste(s)), `${wasteItems(s).length} findings`)));
+    tile(t('reports.tileRunRate'), money0(monthlyTotal(s)), sar(monthlyTotal(s))),
+    tile(t('reports.tileVs', { month: label.month(prev.label) }),
+      `${cur.total - prev.total >= 0 ? '+' : ''}${money0(cur.total - prev.total)}`,
+      pct(((cur.total - prev.total) / prev.total) * 100, 1)),
+    tile(t('reports.tileUptime'), pct(fleetUptime(s), 3), t('reports.tileUptimeSub', { n: s.services.length })),
+    tile(t('reports.tileSaving'), money0(totalWaste(s)), t('reports.tileSavingSub', { n: wasteItems(s).length }))));
 
   const summary = h('div', { class: 'card' },
-    h('div', { class: 'card__head' }, h('h3', {}, `Review notes — ${cur.label} ${cur.year}`)),
+    h('div', { class: 'card__head' }, h('h3', {}, t('reports.notesTitle', { month: label.month(cur.label), year: cur.year }))),
     h('div', { class: 'sv-notes' },
-      note('Spend', `Run rate is ${money2(monthlyTotal(s))} a month, ${money2(Math.abs(cur.total - prev.total))} ${cur.total >= prev.total ? 'above' : 'below'} ${prev.label}. Month to date is ${money2(proj.mtd)} on day ${proj.day} of ${proj.daysInMonth}. The Jeddah entity share converts to ${sar(groupSum(s.resources.filter((r) => r.team === 'Facilities IT'), 'team')[0]?.value || 0)}.`),
-      note('Estate', `${num(s.resources.length)} resources: ${groupSum(s.resources, 'provider').map((p) => `${p.label === 'onprem' ? 'on-prem' : PROVIDERS[p.label]} ${s.resources.filter((r) => r.provider === p.label).length}`).join(', ')}. ${s.resources.filter((r) => !r.tagged).length} are missing the required tags and land in unallocated spend.`),
-      note('Waste', `${wasteItems(s).length} findings worth ${money2(totalWaste(s))} a month. ${Object.values(s.cleanup).filter((v) => v === 'planned').length} are in the cleanup plan.`),
-      note('Reliability', `Fleet uptime ${pct(fleetUptime(s), 3)} over 30 days. ${s.services.filter((x) => x.uptime30 < x.slo).length} service(s) below target.`),
-      note('Alerts', `${openAlerts(s).length} open, ${s.alerts.filter((a) => a.status === 'acked').length} acknowledged, ${s.alerts.filter((a) => a.status === 'resolved').length} resolved this cycle.`),
-      note('Access', `${adminsNoMfa(s).length} elevated account(s) without MFA, ${staleUsers(s).length} stale account(s), ${s.users.filter((u) => u.keyAgeDays > 365).length} access key(s) past a year old.`)));
+      note(t('reports.noteSpend'), t('reports.noteSpendText', {
+        run: money2(monthlyTotal(s)),
+        diff: money2(Math.abs(cur.total - prev.total)),
+        dir: cur.total >= prev.total ? t('reports.above') : t('reports.below'),
+        prev: label.month(prev.label),
+        mtd: money2(proj.mtd), day: proj.day, days: proj.daysInMonth,
+        sar: sar(groupSum(s.resources.filter((r) => r.team === 'Facilities IT'), 'team')[0]?.value || 0),
+      })),
+      note(t('reports.noteEstate'), t('reports.noteEstateText', {
+        n: num(s.resources.length),
+        split: groupSum(s.resources, 'provider').map((p) => `${p.label === 'onprem' ? t('reports.onpremWord') : label.provider(p.label)} ${s.resources.filter((r) => r.provider === p.label).length}`).join(', '),
+        untagged: s.resources.filter((r) => !r.tagged).length,
+      })),
+      note(t('reports.noteWaste'), t('reports.noteWasteText', {
+        n: wasteItems(s).length, money: money2(totalWaste(s)),
+        planned: Object.values(s.cleanup).filter((v) => v === 'planned').length,
+      })),
+      note(t('reports.noteReliability'), t('reports.noteReliabilityText', {
+        pct: pct(fleetUptime(s), 3), below: s.services.filter((x) => x.uptime30 < x.slo).length,
+      })),
+      note(t('reports.noteAlerts'), t('reports.noteAlertsText', {
+        open: openAlerts(s).length,
+        acked: s.alerts.filter((a) => a.status === 'acked').length,
+        resolved: s.alerts.filter((a) => a.status === 'resolved').length,
+      })),
+      note(t('reports.noteAccess'), t('reports.noteAccessText', {
+        noMfa: adminsNoMfa(s).length, stale: staleUsers(s).length,
+        keys: s.users.filter((u) => u.keyAgeDays > 365).length,
+      }))));
 
+  /* Every CSV below is a schema handed to a spreadsheet, so its headers and
+     its cells stay in English whatever the screen is reading in. */
   const chart = h('div', { class: 'card' },
-    h('div', { class: 'card__head' }, h('h3', {}, 'Spend, last seven months')),
-    barChart(months.map((m) => ({ label: m.label, value: m.total })), { format: money0, muted: (x) => x.label !== cur.label }),
+    h('div', { class: 'card__head' }, h('h3', {}, t('reports.chartTitle'))),
+    barChart(months.map((m) => ({ label: label.month(m.label), value: m.total, month: m.label })),
+      { format: money0, muted: (x) => x.month !== cur.label }),
     h('div', { class: 'hr' }),
-    h('div', { class: 'card__head' }, h('h3', {}, 'Downloads')),
+    h('div', { class: 'card__head' }, h('h3', {}, t('reports.downloads'))),
     h('div', { class: 'sv-dl' },
-      dl('Full monthly review', 'One row per section with the headline figures', () => downloadCSV(`stackview-review-${cur.key}.csv`, reviewRows())),
-      dl('Resource inventory', `${num(s.resources.length)} rows`, () => {
+      dl(t('reports.dlReview'), t('reports.dlReviewSub'), () => downloadCSV(`stackview-review-${cur.key}.csv`, reviewRows())),
+      dl(t('reports.dlInventory'), t('reports.dlRows', { n: num(s.resources.length) }), () => {
         const rows = [['Name', 'Provider', 'Type', 'Size', 'Environment', 'Region', 'State', 'Monthly USD', 'Owner', 'Team', 'Tagged']];
         for (const r of ctx.store.state.resources) rows.push([r.name, PROVIDERS[r.provider], r.kind, r.size, r.env, r.region, r.state, r.cost.toFixed(2), r.owner, r.team, r.tagged ? 'yes' : 'no']);
         downloadCSV('stackview-inventory.csv', rows);
       }),
-      dl('Cost by service and month', `${months.length} months`, () => {
+      dl(t('reports.dlCost'), t('reports.dlMonths', { n: months.length }), () => {
         const rows = [['Month', 'Service', 'USD']];
         for (const m of months) for (const [k, v] of Object.entries(m.byService)) rows.push([`${m.label} ${m.year}`, k, v.toFixed(2)]);
         downloadCSV('stackview-cost.csv', rows);
       }),
-      dl('Idle and waste', `${wasteItems(ctx.store.state).length} findings`, () => {
+      dl(t('reports.dlWaste'), t('reports.dlFindings', { n: wasteItems(ctx.store.state).length }), () => {
         const rows = [['Resource', 'Environment', 'Owner', 'Monthly saving USD', 'Why', 'Action', 'In plan']];
         for (const r of wasteItems(ctx.store.state)) rows.push([r.name, r.env, r.owner, r.waste.saving.toFixed(2), r.waste.why, r.waste.action, ctx.store.state.cleanup[r.id] === 'planned' ? 'yes' : 'no']);
         downloadCSV('stackview-waste.csv', rows);
       }),
-      dl('Access review', `${num(s.users.length)} accounts`, () => {
+      dl(t('reports.dlAccess'), t('reports.dlAccounts', { n: num(s.users.length) }), () => {
         const rows = [['Name', 'Email', 'Team', 'Role', 'Directory', 'MFA', 'Days since login', 'Key age days', 'Status']];
         for (const u of ctx.store.state.users) rows.push([u.name, u.email, u.team, u.role, u.directory, u.mfa ? 'yes' : 'no', u.lastLoginDays, u.keyAgeDays || '', u.status]);
         downloadCSV('stackview-access.csv', rows);
       }),
-      dl('Uptime, 30 days', `${s.services.length} services`, () => {
+      dl(t('reports.dlUptime'), t('reports.dlServices', { n: s.services.length }), () => {
         const rows = [['Service', 'Tier', 'Target', 'Uptime 30d', 'Minutes lost', 'Bad days']];
         for (const x of ctx.store.state.services) rows.push([x.name, x.tier, x.slo, x.uptime30, x.days.reduce((a, d) => a + d.mins, 0), x.days.filter((d) => d.status !== 'up').length]);
         downloadCSV('stackview-uptime.csv', rows);
@@ -112,7 +145,11 @@ export function render(ctx) {
     const rec = {
       id: `RV-${Date.now().toString(36).toUpperCase().slice(-6)}`,
       created: new Date().toISOString(),
+      /* the English month rides along for the CSV and the file name; the
+         key and the year are what the screen reads back */
       month: `${cur.label} ${cur.year}`,
+      mkey: cur.label,
+      myear: cur.year,
       author: 'Aravind Menon',
       spend: Number(monthlyTotal(st).toFixed(2)),
       change: Number((cur.total - prev.total).toFixed(2)),
@@ -126,9 +163,9 @@ export function render(ctx) {
     };
     ctx.store.update((state) => {
       state.reports.unshift(rec);
-      state.activity.unshift({ t: rec.created, text: `Monthly review ${rec.id} generated for ${rec.month}` });
+      state.activity.unshift({ t: rec.created, k: 'reviewGenerated', p: { id: rec.id, mkey: cur.label, year: cur.year } });
     });
-    toast(`Review ${rec.id} generated`, 'ok');
+    toast(t('reports.generated', { id: rec.id }), 'ok');
     paintList();
   }
 
@@ -136,22 +173,22 @@ export function render(ctx) {
     const st = ctx.store.state;
     listHost.innerHTML = '';
     const card = h('div', { class: 'card' },
-      h('div', { class: 'card__head' }, h('h3', {}, 'Generated reviews'),
+      h('div', { class: 'card__head' }, h('h3', {}, t('reports.listTitle')),
         h('span', { class: 'pill' }, `${st.reports.length}`)));
     if (!st.reports.length) {
       card.appendChild(h('div', { class: 'empty' },
-        h('h3', {}, 'No reviews yet'),
-        h('p', {}, 'Generate one to freeze this month’s numbers. Saved reviews survive a reload.')));
+        h('h3', {}, t('reports.emptyTitle')),
+        h('p', {}, t('reports.emptyBody'))));
     } else {
       card.appendChild(h('div', { class: 'tablewrap tablewrap--scroll' },
         h('table', { class: 'data' },
           h('thead', {}, h('tr', {},
-            h('th', {}, 'Review'), h('th', {}, 'Month'), h('th', { class: 'right' }, 'Spend'),
-            h('th', { class: 'right' }, 'Waste'), h('th', { class: 'right' }, 'Uptime'),
-            h('th', { class: 'right' }, 'Open alerts'), h('th', {}, 'Created'), h('th', {}, ''))),
+            h('th', {}, t('reports.thReview')), h('th', {}, t('reports.thMonth')), h('th', { class: 'right' }, t('reports.thSpend')),
+            h('th', { class: 'right' }, t('reports.thWaste')), h('th', { class: 'right' }, t('reports.thUptime')),
+            h('th', { class: 'right' }, t('reports.thOpen')), h('th', {}, t('reports.thCreated')), h('th', {}, ''))),
           h('tbody', {}, st.reports.map((r) => h('tr', {},
             h('td', {}, h('span', { class: 'mono' }, r.id), h('div', { class: 'small faint' }, r.author)),
-            h('td', {}, r.month),
+            h('td', {}, reviewMonth(r)),
             h('td', { class: 'right mono' }, money2(r.spend)),
             h('td', { class: 'right mono' }, money2(r.waste)),
             h('td', { class: 'right mono' }, pct(r.uptime, 3)),
@@ -159,7 +196,7 @@ export function render(ctx) {
             h('td', { class: 'small faint mono' }, `${fmtDate(r.created, { day: '2-digit', month: 'short' })} ${fmtTime(r.created)} · ${ago(r.created)}`),
             h('td', { class: 'right' }, h('div', { class: 'btnrow', style: 'justify-content:flex-end' },
               h('button', {
-                class: 'btn btn--sm', type: 'button', 'aria-label': `Download ${r.id}`,
+                class: 'btn btn--sm', type: 'button', 'aria-label': t('reports.downloadLabel', { id: r.id }),
                 onclick: () => {
                   downloadCSV(`${r.id}-${r.month.replace(' ', '-').toLowerCase()}.csv`, [
                     ['Review', r.id], ['Month', r.month], ['Author', r.author], ['Created', r.created],
@@ -169,18 +206,19 @@ export function render(ctx) {
                     ['Findings in cleanup plan', r.planned], ['Fleet uptime %', r.uptime],
                     ['Open alerts', r.openAlerts], ['Elevated without MFA', r.noMfa], ['Stale accounts', r.stale],
                   ]);
-                  toast('Review downloaded');
+                  toast(t('reports.downloaded'));
                 },
               }, 'CSV'),
               h('button', {
-                class: 'btn btn--sm btn--ghost', type: 'button', 'aria-label': `Delete ${r.id}`,
+                class: 'btn btn--sm btn--ghost', type: 'button', 'aria-label': t('reports.deleteLabel', { id: r.id }),
                 onclick: async () => {
-                  const ok = await confirmDialog(`Delete review ${r.id}?`, { title: 'Delete review', danger: true, okLabel: 'Delete' });
+                  const ok = await confirmDialog(t('reports.deleteBody', { id: r.id }),
+                    { title: t('reports.deleteTitle'), danger: true, okLabel: t('reports.deleteOk') });
                   if (!ok) return;
                   ctx.store.update((state) => { state.reports = state.reports.filter((x) => x.id !== r.id); });
-                  toast('Review deleted'); paintList();
+                  toast(t('reports.deleted')); paintList();
                 },
-              }, 'Delete')))))))));
+              }, t('reports.deleteOk'))))))))));
     }
     listHost.appendChild(card);
   }
@@ -189,15 +227,15 @@ export function render(ctx) {
   return wrap;
 }
 
-function tile(label, value, delta) {
+function tile(name, value, delta) {
   return h('div', { class: 'stat' },
-    h('div', { class: 'stat__label' }, label),
+    h('div', { class: 'stat__label' }, name),
     h('div', { class: 'stat__value sv-stat--fit' }, value),
     h('div', { class: 'stat__delta' }, delta));
 }
-function note(label, text) {
+function note(name, text) {
   return h('div', { class: 'sv-note' },
-    h('div', { class: 'label' }, label),
+    h('div', { class: 'label' }, name),
     h('p', { class: 'small' }, text));
 }
 function dl(title, sub, fn) {

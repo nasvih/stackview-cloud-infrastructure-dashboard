@@ -11,6 +11,7 @@ import {
   staleUsers, adminsNoMfa, fleetUptime, groupSum, projection, PROVIDERS,
   ENVS, OFFBOARD_STEPS, costCentreFor,
 } from './data.js';
+import { t } from './main.js';
 
 const SUGGESTIONS = [
   'What is idle right now?',
@@ -123,44 +124,24 @@ const unallocated = (s) => s.resources.filter((r) => !r.tagged).reduce((a, r) =>
 const mfaPct = (s) => (s.users.filter((u) => u.mfa).length / s.users.length) * 100;
 
 /* ---------- the worked examples, shared with the About modal ---------- */
-export const ACTION_HELP = [
-  {
-    title: 'Work the alert queue',
-    ask: 'Acknowledge everything critical from last night',
-    does: 'names the critical alerts opened in the overnight window and counts them, then on confirmation acknowledges them as Aravind Menon, writes a timeline entry on each and reports the queue before and after. "Mute the certificate alert for 24 hours" does the single one.',
-    screen: 'Alerts',
-  },
-  {
-    title: 'Build the cleanup plan',
-    ask: 'Add the top three idle resources to the cleanup plan',
-    does: 'lists the three findings it will pick up with their monthly saving, then adds them and reports the plan going from one figure to another, with the yearly number.',
-    screen: 'Cost → Idle and waste',
-  },
-  {
-    title: 'Stop a resource',
-    ask: 'Stop nl-dev-sandbox-01',
-    does: 'reads the resource, its environment, owner and monthly draw, then stops it. Anything in production has to be confirmed on a button that says so, and it names the service that resource backs before you press.',
-    screen: 'Resources',
-  },
-  {
-    title: 'Reassign ownership',
-    ask: 'Reassign nl-analytics-pg to Rohit Varma',
-    does: 'moves the owner and the Owner tag, and reports how much monthly spend moved from one person to the other.',
-    screen: 'Resources · Access',
-  },
-  {
-    title: 'Fix an account',
-    ask: 'Enforce MFA on Divya Pillai',
-    does: 'turns the second factor on and reports MFA coverage before and after. "Start offboarding for Ashraf Kunhi" opens the seven step checklist instead.',
-    screen: 'Access',
-  },
-  {
-    title: 'Tag what is unallocated',
-    ask: 'Tag every untagged resource with its owner',
-    does: 'applies Owner, CostCentre and ManagedBy to the resources that have none, and reports how much monthly spend moved out of unallocated.',
-    screen: 'Resources · Cost → By team',
-  },
-];
+/* The six things the assistant can change. The `ask` line is the sentence a
+   reader types at it, so it stays in Latin; the title, the description and
+   the screen it lands on are read from the dictionary. It is a function
+   rather than a constant because the language is only known at call time. */
+export const ACTION_HELP = () => [
+  { key: 'alerts', ask: 'Acknowledge everything critical from last night' },
+  { key: 'plan', ask: 'Add the top three idle resources to the cleanup plan' },
+  { key: 'stop', ask: 'Stop nl-dev-sandbox-01' },
+  { key: 'reassign', ask: 'Reassign nl-analytics-pg to Rohit Varma' },
+  { key: 'account', ask: 'Enforce MFA on Divya Pillai' },
+  { key: 'tag', ask: 'Tag every untagged resource with its owner' },
+].map((a) => ({
+  ask: a.ask,
+  title: t(`agent.actions.${a.key}.title`),
+  does: t(`agent.actions.${a.key}.does`),
+  screen: t(`agent.actions.${a.key}.screen`),
+}));
+
 
 export function buildAssistant(store, opts = {}) {
   const refresh = typeof opts.refresh === 'function' ? opts.refresh : () => {};
@@ -692,9 +673,9 @@ export function buildAssistant(store, opts = {}) {
       match: [/what can you do|what are you able|what can i ask|capabilit|\bhelp\b|what do you do|can you actually/i, 'what can you do'],
       trace: 'listed the intents and the actions wired to this workspace',
       answer: (q, s) => ({
-        text: `I read this estate — ${num(s.resources.length)} resources, ${s.alerts.length} alerts, ${s.users.length} accounts — and I can **change it**, not only describe it. Every change is shown to you first and only lands when you press the button.\n\n${listOf(ACTION_HELP.map((a) => `- **${a.title}** — ask "${a.ask}". It ${a.does.split('. ')[0]}. Lands on ${a.screen}.`))}\n\nFor reading, ask me about spend by environment or team, the projected month end, the biggest cost jump, uptime against SLO, what broke last night, the access review, ownership, tagging, or the most expensive resources.`,
-        table: { head: ['Ask me', 'What happens'], rows: ACTION_HELP.map((a) => [a.ask, `${a.title} · ${a.screen}`]) },
-        meta: `${ACTION_HELP.length} actions available · nothing runs without a press`,
+        text: `I read this estate — ${num(s.resources.length)} resources, ${s.alerts.length} alerts, ${s.users.length} accounts — and I can **change it**, not only describe it. Every change is shown to you first and only lands when you press the button.\n\n${listOf(ACTION_HELP().map((a) => `- **${a.title}** — ask "${a.ask}". It ${a.does.split('. ')[0]}. Lands on ${a.screen}.`))}\n\nFor reading, ask me about spend by environment or team, the projected month end, the biggest cost jump, uptime against SLO, what broke last night, the access review, ownership, tagging, or the most expensive resources.`,
+        table: { head: ['Ask me', 'What happens'], rows: ACTION_HELP().map((a) => [a.ask, `${a.title} · ${a.screen}`]) },
+        meta: `${ACTION_HELP().length} actions available · nothing runs without a press`,
         suggestions: ['Acknowledge everything critical from last night', 'Add the top three idle resources to the cleanup plan', 'Stop nl-dev-sandbox-01', 'Tag every untagged resource with its owner'],
       }),
     },
@@ -1027,17 +1008,34 @@ export function buildAssistant(store, opts = {}) {
   return new Assistant({
     name: 'Stackview Insight',
     initials: 'SI',
-    tag: 'Demo agent · reads this workspace only',
-    greeting: `I read the estate in front of you — ${store.state.resources.length} resources, ${store.state.alerts.length} alerts, ${store.state.users.length} accounts — and answer with the numbers that are on screen right now.\n\nI can also do the work: acknowledge alerts, build the cleanup plan, stop a resource, move an owner, fix an account, tag what is unallocated. I show you exactly what I am about to touch and wait for you to press.\n\nAsk **"what can you do?"**, try one of these, or ask in your own words.`,
+    tag: t('agent.tag'),
+    greeting: t('agent.greeting', {
+      resources: store.state.resources.length,
+      alerts: store.state.alerts.length,
+      users: store.state.users.length,
+    }),
+    /* the chips are the sentences the router matches, so they stay in Latin */
     suggestions: SUGGESTIONS,
     intents,
-    fallbacks: [
-      'I only answer from this workspace. Ask me what is idle, where the biggest cost jump came from, which admins have no MFA, or tell me to acknowledge everything critical from last night.',
-      'That one is outside the demo data. I can pull spend by environment or team, the projected month end, the alert queue, uptime against SLO, or the access review — and I can change any of it on your say so.',
-      'I could not match that to anything in the estate. Try "what is safe to switch off", "tag every untagged resource with its owner", or "which accounts are stale".',
-      'No match in the current data. Ask "what can you do?" for the six things I can change, or ask me anything about cost, waste, alerts, uptime, access and inventory.',
-    ],
-    note: 'Demo agent — every answer is assembled locally from the sample estate in this app. No network calls, no model.',
+    fallbacks: t('agent.fallbacks'),
+    note: t('agent.note'),
+    /* the words the panel says on its own, handed over translated */
+    ui: {
+      openLabel: (name) => t('agent.ui.openLabel', { name }),
+      fabTitle: (name) => t('agent.ui.fabTitle', { name }),
+      clear: t('agent.ui.clear'),
+      close: t('agent.ui.close'),
+      placeholder: t('agent.ui.placeholder'),
+      send: t('agent.ui.send'),
+      you: t('agent.ui.you'),
+      working: t('agent.ui.working'),
+      done: t('agent.ui.done'),
+      answerError: t('agent.ui.answerError'),
+      actionError: t('agent.ui.actionError'),
+      applied: t('agent.ui.applied'),
+      searched: t('agent.ui.searched'),
+      seconds: (sec) => t('agent.ui.seconds', { s: sec }),
+    },
     context: () => store.state,
   });
 }

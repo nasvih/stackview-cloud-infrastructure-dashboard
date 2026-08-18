@@ -378,3 +378,48 @@ table.data td.right,table.data th.right{text-align:right}
   --line:rgba(23,24,26,.16); --line-2:rgba(23,24,26,.24); --hover:rgba(23,24,26,.07);
   --amber-deep:#6B5400; --amber-darker:#5A4700;
 }
+
+/* == right to left ========================================================
+   The sheet is written in flex, grid and logical spacing, so the Arabic side
+   mirrors itself. These are only the rules that name a physical side, plus the
+   Arabic face — Inter carries no Arabic glyphs, so without it the app falls
+   back to whatever the device happens to have.
+   `dir="rtl"` is written onto <html> by _kit/i18n.js before the first paint. */
+
+html[dir="rtl"] body{font-family:'IBM Plex Sans Arabic',var(--sans)}
+html[dir="rtl"] [dir="ltr"]{font-family:var(--sans)}
+/* Arabic sits lower in its line box and reads better with a little more air. */
+html[dir="rtl"] p,html[dir="rtl"] li,html[dir="rtl"] td{line-height:1.75}
+/* The mono label style is built for Latin capitals: uppercase does nothing in
+   Arabic and the wide tracking pulls the letters apart. */
+html[dir="rtl"] .label,html[dir="rtl"] table.data th,html[dir="rtl"] .kpi__label{text-transform:none;letter-spacing:0;font-family:'IBM Plex Sans Arabic',var(--sans)}
+
+[dir="rtl"] .side{border-right:0;border-left:1px solid var(--line)}
+[dir="rtl"] .navlink{text-align:right}
+[dir="rtl"] .navlink__count{margin-left:0;margin-right:auto}
+[dir="rtl"] .side__brandbtns{margin-left:0;margin-right:auto}
+[dir="rtl"] .shell.is-rail .side__brandbtns{margin-right:0}
+[dir="rtl"] table.data th{text-align:right}
+[dir="rtl"] table.data td.right,[dir="rtl"] table.data th.right{text-align:left}
+[dir="rtl"] .select{background-position:left 10px center;padding-right:12px;padding-left:34px}
+[dir="rtl"] .search .input{padding-left:12px;padding-right:34px}
+[dir="rtl"] .search svg{left:auto;right:10px}
+[dir="rtl"] .switch__track::after{left:auto;right:2px}
+[dir="rtl"] .switch input:checked+.switch__track::after{transform:translateX(-16px)}
+[dir="rtl"] .toasts{right:auto;left:18px;align-items:flex-start}
+[dir="rtl"] .drawer{right:auto;left:0;border-left:0;border-right:1px solid var(--line)}
+[dir="rtl"] .assist-fab,[dir="rtl"] .assist{right:auto;left:22px}
+[dir="rtl"] .assist{left:20px}
+[dir="rtl"] .msg__body ul{padding-right:0}
+[dir="rtl"] .msg__body li{padding-left:0;padding-right:16px}
+[dir="rtl"] .msg__body li::before{left:auto;right:2px}
+[dir="rtl"] .msg__table td,[dir="rtl"] .msg__table th{text-align:right}
+[dir="rtl"] .tab{border-left:0;border-right:0}
+[dir="rtl"] .timeline{border-left:0;border-right:1px solid var(--line);padding-left:0;padding-right:18px}
+[dir="rtl"] .timeline__item::before{left:auto;right:-22px}
+/* An arrow that means "onward" points the other way in a right-to-left line;
+   a clock, a bell or an envelope is a picture of a thing, not a direction. */
+[dir="rtl"] .btn .icon-dir,[dir="rtl"] .link-arrow svg{transform:scaleX(-1)}
+/* The language button: the globe never flips, and the label keeps its own run. */
+.langbtn{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.langbtn svg{width:16px;height:16px;flex:none}

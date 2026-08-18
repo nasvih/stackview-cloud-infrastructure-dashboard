@@ -10,6 +10,7 @@
 
 import { h, icon, ago, num, pct } from '../lib/ui.js';
 import { money2, openAlerts, wasteItems, adminsNoMfa, projection } from './data.js';
+import { t, label, alertTitle, wasteWhy } from './main.js';
 
 const READ_KEY = 'stackview.notifs.v1';
 
@@ -28,8 +29,8 @@ export function buildNotifications(s) {
   /* new critical alerts */
   for (const a of openAlerts(s).filter((x) => x.sev === 'critical')) {
     out.push({
-      id: `alert:${a.id}`, kind: 'Critical alert', tone: 'bad', at: a.opened,
-      title: a.title, body: `${a.source} · ${a.resource}`, to: 'alerts',
+      id: `alert:${a.id}`, kind: t('notif.kindCritical'), tone: 'bad', at: a.opened,
+      title: alertTitle(a), body: `${label.source(a.source)} · ${a.resource}`, to: 'alerts',
     });
   }
 
@@ -40,9 +41,17 @@ export function buildNotifications(s) {
   const drift = p.projected - prev.total;
   if (prev.total && Math.abs(drift / prev.total) >= 0.02) {
     out.push({
-      id: `budget:${cur.key}`, kind: 'Budget drift', tone: 'warn', at: null,
-      title: `Month end is tracking ${money2(Math.abs(drift))} ${drift >= 0 ? 'above' : 'below'} ${prev.label}`,
-      body: `${money2(p.projected)} projected against ${money2(prev.total)} last month, ${pct(Math.abs((drift / prev.total) * 100), 1)} ${drift >= 0 ? 'up' : 'down'}.`,
+      id: `budget:${cur.key}`, kind: t('notif.kindBudget'), tone: 'warn', at: null,
+      title: t('notif.budgetTitle', {
+        money: money2(Math.abs(drift)),
+        dir: drift >= 0 ? t('notif.budgetAbove') : t('notif.budgetBelow'),
+        month: label.month(prev.label),
+      }),
+      body: t('notif.budgetBody', {
+        projected: money2(p.projected), prev: money2(prev.total),
+        pct: pct(Math.abs((drift / prev.total) * 100), 1),
+        dir: drift >= 0 ? t('notif.budgetUp') : t('notif.budgetDown'),
+      }),
       to: 'cost',
     });
   }
@@ -50,27 +59,29 @@ export function buildNotifications(s) {
   /* accounts without a second factor */
   for (const u of adminsNoMfa(s)) {
     out.push({
-      id: `mfa:${u.id}`, kind: 'No MFA', tone: 'bad', at: null,
-      title: `${u.name} holds ${u.role} with no second factor`,
-      body: `${u.directory} · ${u.team} · last signed in ${ago(u.lastLogin)}`, to: 'access',
+      id: `mfa:${u.id}`, kind: t('notif.kindMfa'), tone: 'bad', at: null,
+      title: t('notif.mfaTitle', { name: u.name, role: label.role(u.role) }),
+      body: t('notif.mfaBody', {
+        directory: label.directory(u.directory), team: label.team(u.team), ago: ago(u.lastLogin),
+      }), to: 'access',
     });
   }
 
   /* access keys past a year */
   for (const u of s.users.filter((x) => x.keyAgeDays > 365)) {
     out.push({
-      id: `key:${u.id}`, kind: 'Old key', tone: 'warn', at: null,
-      title: `${u.name} has an access key ${num(u.keyAgeDays)} days old`,
-      body: 'The policy is 90 days. Rotate it from the account drawer.', to: 'access',
+      id: `key:${u.id}`, kind: t('notif.kindKey'), tone: 'warn', at: null,
+      title: t('notif.keyTitle', { name: u.name, days: num(u.keyAgeDays) }),
+      body: t('notif.keyBody'), to: 'access',
     });
   }
 
   /* resources idle for weeks */
   for (const r of wasteItems(s).filter((x) => x.util.cpu < 10 || ['unattached', 'unassociated'].includes(x.state)).slice(0, 4)) {
     out.push({
-      id: `idle:${r.id}`, kind: 'Idle for weeks', tone: 'warn', at: null,
-      title: `${r.name} is idle at ${money2(r.waste.saving)} a month`,
-      body: r.waste.why, to: 'cost?tab=waste',
+      id: `idle:${r.id}`, kind: t('notif.kindIdle'), tone: 'warn', at: null,
+      title: t('notif.idleTitle', { name: r.name, money: money2(r.waste.saving) }),
+      body: wasteWhy(r), to: 'cost?tab=waste',
     });
   }
 
@@ -92,7 +103,7 @@ export function notificationsControl({ store, navigate, onNavigate }) {
   });
   btn.appendChild(count);
 
-  const panel = h('div', { class: 'sv-notif', hidden: true, role: 'dialog', 'aria-label': 'Notifications' });
+  const panel = h('div', { class: 'sv-notif', hidden: true, role: 'dialog', 'aria-label': t('notif.panelLabel') });
   const wrap = h('div', { class: 'sv-notifwrap' }, btn, panel);
 
   function list() { return buildNotifications(store.state); }
@@ -102,9 +113,9 @@ export function notificationsControl({ store, navigate, onNavigate }) {
     const n = unread().length;
     count.textContent = n > 99 ? '99+' : String(n);
     count.hidden = n === 0;
-    const label = n ? `Notifications, ${n} unread` : 'Notifications, nothing unread';
-    btn.setAttribute('aria-label', label);
-    btn.title = label;
+    const text = n ? t('notif.bellUnread', { n }) : t('notif.bellClear');
+    btn.setAttribute('aria-label', text);
+    btn.title = text;
   }
 
   function markRead(id) { read.add(id); saveRead(read); paint(); }
@@ -122,18 +133,20 @@ export function notificationsControl({ store, navigate, onNavigate }) {
     panel.innerHTML = '';
     panel.appendChild(h('div', { class: 'sv-notif__head' },
       h('div', { style: 'flex:1;min-width:0' },
-        h('div', { class: 'sv-notif__ttl' }, 'Notifications'),
-        h('div', { class: 'small faint mono' }, rows.length ? `${n} unread of ${rows.length}` : 'nothing open')),
-      n ? h('button', { class: 'btn btn--sm', type: 'button', onclick: () => markAll() }, 'Mark all read') : null,
+        h('div', { class: 'sv-notif__ttl' }, t('notif.title')),
+        h('div', { class: 'small faint mono' }, rows.length
+          ? t('notif.unreadCount', { n, total: rows.length })
+          : t('notif.nothingOpen'))),
+      n ? h('button', { class: 'btn btn--sm', type: 'button', onclick: () => markAll() }, t('notif.markAll')) : null,
       h('button', {
-        class: 'btn btn--ghost btn--icon', type: 'button', 'aria-label': 'Close notifications',
-        title: 'Close notifications', html: icon('x'), onclick: () => toggle(false),
+        class: 'btn btn--ghost btn--icon', type: 'button', 'aria-label': t('notif.closeLabel'),
+        title: t('notif.closeLabel'), html: icon('x'), onclick: () => toggle(false),
       })));
 
     if (!rows.length) {
       panel.appendChild(h('div', { class: 'sv-notif__empty' },
-        h('h4', {}, 'Nothing needs you'),
-        h('p', { class: 'small muted' }, 'No critical alert is open, the month is tracking close to last month, every elevated account has a second factor and no key is past a year. This list is built from the estate, so it fills up again as things change.')));
+        h('h4', {}, t('notif.emptyTitle')),
+        h('p', { class: 'small muted' }, t('notif.emptyBody'))));
       return;
     }
 
@@ -152,7 +165,7 @@ export function notificationsControl({ store, navigate, onNavigate }) {
         h('div', { class: 'small muted' }, item.body)),
         isRead ? null : h('button', {
           class: 'btn btn--ghost btn--icon sv-notif__read', type: 'button',
-          'aria-label': `Mark "${item.title}" as read`, title: 'Mark as read',
+          'aria-label': t('notif.markReadOne', { title: item.title }), title: t('notif.markRead'),
           html: icon('check'), onclick: () => markRead(item.id),
         }));
     })));

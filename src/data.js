@@ -225,7 +225,9 @@ function makeAlerts() {
       status: 'open',
       ackBy: null,
       ackAt: null,
-      timeline: [{ t: opened, who: source, text: 'Alert opened' }],
+      /* Timeline entries are stored as a key, not a sentence, so the history
+         reads in whichever language the app is in now. */
+      timeline: [{ t: opened, who: source, k: 'opened' }],
     };
   });
 }
@@ -339,10 +341,11 @@ export function seedState() {
     services: makeUptime(rnd),
     cleanup: {},        /* resourceId -> 'planned' | 'dismissed' */
     reports: [],        /* generated monthly reviews */
+    /* Same for the activity feed: a key and its numbers, resolved when read. */
     activity: [
-      { t: new Date(Date.now() - 3600000 * 2).toISOString(), text: 'Cost guard flagged 2 unattached volumes' },
-      { t: new Date(Date.now() - 3600000 * 7).toISOString(), text: 'eks-prod-ng-general scaled from 3 to 4 nodes' },
-      { t: new Date(Date.now() - 3600000 * 26).toISOString(), text: 'Access review opened for 3 stale accounts' },
+      { t: new Date(Date.now() - 3600000 * 2).toISOString(), k: 'seedVolumes', p: { n: 2 } },
+      { t: new Date(Date.now() - 3600000 * 7).toISOString(), k: 'seedScaled' },
+      { t: new Date(Date.now() - 3600000 * 26).toISOString(), k: 'seedReview', p: { n: 3 } },
     ],
   };
 }

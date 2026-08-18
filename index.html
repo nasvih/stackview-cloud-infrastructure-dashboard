@@ -8,9 +8,10 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#0B70C8">
 <script>
-/* Theme before first paint: a stored choice wins, otherwise the operating
-   system decides. Without this a dark browser flashes white while the
-   module loads. No network, no dependencies. */
+/* Theme and language before first paint: a stored choice wins, otherwise the
+   operating system decides and the app reads English. Without this a dark
+   browser flashes white and an Arabic reader gets one frame of left-to-right
+   layout while the module loads. No network, no dependencies. */
 (function () {
   try {
     var p = JSON.parse(localStorage.getItem('stackview.prefs.v1') || '{}');
@@ -18,6 +19,12 @@
       : window.matchMedia && false;
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
     if (dark) document.querySelector('meta[name="theme-color"]').setAttribute('content', '#141517');
+  } catch (e) {}
+  try {
+    var lang = localStorage.getItem('stackview.lang') === 'ar' ? 'ar' : 'en';
+    document.documentElement.setAttribute('lang', lang);
+    document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+    if (lang === 'ar') document.documentElement.classList.add('ar-root');
   } catch (e) {}
 })();
 </script>
@@ -27,7 +34,7 @@
 <meta name="apple-mobile-web-app-title" content="Stackview">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./assets/app.css">
 <link rel="stylesheet" href="./assets/stackview.css">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B70C8'/%3E%3Cpath d='M8 12h16M8 20h16' stroke='%23FFFFFF' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E">
@@ -36,6 +43,7 @@
 <noscript>
   <div style="padding:24px;font-family:system-ui">
     stackview is a client-side demo application and needs JavaScript enabled to render its screens.
+    <span dir="rtl" lang="ar" style="display:block;margin-top:8px">stackview تطبيق تجريبي يعمل داخل المتصفح ويحتاج إلى تفعيل جافاسكربت لعرض شاشاته.</span>
   </div>
 </noscript>
 <div id="app"></div>
